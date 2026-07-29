@@ -16,8 +16,8 @@ import {
   Settings,
   LogOut,
   Menu,
-  Sun,
-  Moon,
+  Sparkles,
+  Zap,
   Search,
   Command,
 } from 'lucide-react'
@@ -199,7 +199,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               className="text-muted-foreground hover:text-foreground"
             >
-              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+              {isDark ? <Sparkles className="w-4 h-4 text-amber-400" /> : <Zap className="w-4 h-4 text-indigo-500" />}
             </Button>
           </div>
         </header>
