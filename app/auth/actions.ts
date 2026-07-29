@@ -23,16 +23,21 @@ export async function login(
     return { error: parsed.error.issues[0]?.message || 'Invalid input' }
   }
 
-  const { error } = await supabase.auth.signInWithPassword(parsed.data)
+  try {
+    const { error } = await supabase.auth.signInWithPassword(parsed.data)
 
-  if (error) {
-    if (error.message.includes('Invalid login credentials')) {
-      return { error: 'Incorrect email or password. Please try again.' }
+    if (error) {
+      if (error.message.includes('Invalid login credentials')) {
+        return { error: 'Incorrect email or password. Please try again.' }
+      }
+      if (error.message.includes('Email not confirmed')) {
+        return { error: 'Please verify your email before signing in.' }
+      }
+      return { error: error.message }
     }
-    if (error.message.includes('Email not confirmed')) {
-      return { error: 'Please verify your email before signing in.' }
-    }
-    return { error: error.message }
+  } catch (err: any) {
+    console.error("Login network/server error:", err)
+    return { error: "Could not connect to the database. Please check your Supabase keys." }
   }
 
   revalidatePath('/', 'layout')
@@ -62,16 +67,21 @@ export async function signup(
     return { error: parsed.error.issues[0]?.message || 'Invalid input' }
   }
 
-  const { error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-  })
+  try {
+    const { error } = await supabase.auth.signUp({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    })
 
-  if (error) {
-    if (error.message.includes('User already registered')) {
-      return { error: 'An account with this email already exists.' }
+    if (error) {
+      if (error.message.includes('User already registered')) {
+        return { error: 'An account with this email already exists.' }
+      }
+      return { error: error.message }
     }
-    return { error: error.message }
+  } catch (err: any) {
+    console.error("Signup network/server error:", err)
+    return { error: "Could not connect to the database. Please check your Supabase keys." }
   }
 
   revalidatePath('/', 'layout')
