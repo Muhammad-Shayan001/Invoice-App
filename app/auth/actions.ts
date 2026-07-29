@@ -29,12 +29,16 @@ export async function login(
     if (error) {
       if (
         error.message.includes('Invalid login credentials') ||
-        error.message.includes('invalid_credentials')
+        error.message.includes('invalid_credentials') ||
+        error.message.includes('Invalid email or password')
       ) {
         return { error: 'Incorrect email or password. Please try again.' }
       }
-      if (error.message.includes('Email not confirmed')) {
-        return { error: 'Please check your email and click the confirmation link before signing in.' }
+      if (
+        error.message.includes('Email not confirmed') ||
+        error.message.includes('email_not_confirmed')
+      ) {
+        return { error: 'Your email is not confirmed yet. Please check your inbox or sign up again.' }
       }
       return { error: error.message }
     }
@@ -79,25 +83,45 @@ export async function signup(
     if (error) {
       if (
         error.message.includes('User already registered') ||
-        error.message.includes('already been registered')
+        error.message.includes('already been registered') ||
+        error.message.includes('already registered')
       ) {
         return { error: 'An account with this email already exists. Please sign in instead.' }
       }
-      return { error: error.message }
+      if (error.message.includes('rate limit') || error.message.includes('email rate limit')) {
+        // Rate limit hit — the account IS created, try signing in directly
+        const { error: loginErr } = await supabase.auth.signInWithPassword({
+          email: parsed.data.email,
+          password: parsed.data.password,
+        })
+        if (!loginErr) {
+          // Signed in successfully — fall through to redirect
+        } else {
+          return { success: true } // Account created, email pending
+        }
+      } else {
+        return { error: error.message }
+      }
     }
 
-    // If user is created but session is null → email confirmation required
-    if (data.user && !data.session) {
+    // If email confirmation is ON and no session yet → show "check email" screen
+    if (data?.user && !data?.session) {
       return { success: true }
     }
+
+    // If session exists (email confirmation OFF) → redirect to dashboard immediately
+    if (data?.session) {
+      revalidatePath('/', 'layout')
+      redirect('/dashboard')
+    }
+
+    return { success: true }
   } catch (err: any) {
+    // Check if the error is actually a redirect (Next.js throws redirects as errors)
+    if ((err as any)?.digest?.startsWith('NEXT_REDIRECT')) throw err
     console.error('Signup error:', err)
     return { error: err?.message || 'An unexpected error occurred. Please try again.' }
   }
-
-  // If we have a session (email confirmation disabled), go straight to dashboard
-  revalidatePath('/', 'layout')
-  redirect('/dashboard')
 }
 
 export async function logout(): Promise<void> {
