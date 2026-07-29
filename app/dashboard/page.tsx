@@ -1,8 +1,10 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DollarSign, Clock, AlertCircle, FileText } from 'lucide-react'
 
-export default async function DashboardPage() {
+export default function DashboardPage() {
   // In a real scenario with a valid DB, we would fetch these from Supabase
   // using createClient() from utils/supabase/server.
   // For now, these are placeholder values to show the UI structure.
