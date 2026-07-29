@@ -2,78 +2,157 @@
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Receipt, Users, TrendingUp } from 'lucide-react'
+import { Receipt, ArrowRight, Users, TrendingUp, CheckCircle, Zap, Shield, FileText } from 'lucide-react'
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="px-6 lg:px-8 h-16 flex items-center border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <Link className="flex items-center justify-center" href="/">
-          <Receipt className="h-6 w-6 text-primary" />
-          <span className="ml-2 text-lg font-bold tracking-tight">Invoicer</span>
-        </Link>
-        <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
-          <Link className="text-sm font-medium hover:text-primary transition-colors" href="/login">
-            Login
+    <div className="flex flex-col min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md supports-backdrop-filter:bg-background/60">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 font-bold text-lg">
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <Receipt className="h-5 w-5 text-primary" />
+            </div>
+            <span>Invoicer</span>
           </Link>
-          <Link href="/signup">
-            <Button size="sm">Get Started</Button>
-          </Link>
-        </nav>
-      </header>
-      <main className="flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
-        <div className="mx-auto max-w-3xl space-y-8">
-          <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/10 text-primary hover:bg-primary/20">
-            Now available in Beta
-          </div>
-          <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl text-foreground">
-            Freelance invoicing, <span className="text-primary">simplified.</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Manage your clients, send professional PDF invoices, and track your earnings in one beautiful, secure platform built specifically for freelancers.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Link href="/signup">
-              <Button size="lg" className="w-full sm:w-auto gap-2">
-                Start for free <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
+          <nav className="flex items-center gap-3">
             <Link href="/login">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                Sign In
-              </Button>
+              <Button variant="ghost" size="sm">Log In</Button>
             </Link>
-          </div>
+            <Link href="/signup">
+              <Button size="sm">Get Started</Button>
+            </Link>
+          </nav>
         </div>
+      </header>
 
-        <div className="mt-32 grid grid-cols-1 gap-8 sm:grid-cols-3 max-w-5xl mx-auto text-left">
-          <div className="flex flex-col p-6 bg-card border rounded-2xl shadow-sm">
-            <Users className="w-10 h-10 text-primary mb-4" />
-            <h3 className="text-lg font-bold mb-2">Client Manager</h3>
-            <p className="text-muted-foreground flex-1">Keep track of all your clients, their contact information, and billing history in one unified view.</p>
+      {/* Hero */}
+      <main className="flex-1">
+        <section className="relative overflow-hidden pt-20 pb-32 sm:pt-32 sm:pb-40">
+          {/* Background glow */}
+          <div className="absolute inset-0 -z-10 overflow-hidden">
+            <div className="absolute left-1/2 top-0 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-primary/8 blur-3xl" />
+            <div className="absolute right-0 top-1/3 h-[300px] w-[400px] rounded-full bg-primary/5 blur-3xl" />
           </div>
-          <div className="flex flex-col p-6 bg-card border rounded-2xl shadow-sm">
-            <Receipt className="w-10 h-10 text-primary mb-4" />
-            <h3 className="text-lg font-bold mb-2">Smart Invoicing</h3>
-            <p className="text-muted-foreground flex-1">Create itemized invoices, generate PDFs on the fly, and send them directly to clients via email.</p>
+
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-4 py-1.5 text-sm font-medium text-primary mb-8">
+              <Zap className="w-3.5 h-3.5" />
+              Built for freelancers
+            </div>
+
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground mb-6 leading-[1.1]">
+              Invoice smarter,{' '}
+              <span className="text-primary">get paid faster.</span>
+            </h1>
+
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-10">
+              Track every client, send polished PDF invoices, and know exactly who owes you money — all in one calm, fast, and beautifully designed app.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link href="/signup">
+                <Button size="lg" className="gap-2 px-8 h-12 text-base">
+                  Start for free <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button size="lg" variant="outline" className="px-8 h-12 text-base">
+                  Sign in to your account
+                </Button>
+              </Link>
+            </div>
+
+            {/* Trust badges */}
+            <div className="flex flex-wrap items-center justify-center gap-6 mt-12 text-sm text-muted-foreground">
+              {[
+                { icon: CheckCircle, text: '100% Private & Secure' },
+                { icon: FileText, text: 'PDF Ready' },
+                { icon: Shield, text: 'RLS Protected Data' },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-2">
+                  <Icon className="w-4 h-4 text-primary" />
+                  {text}
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-col p-6 bg-card border rounded-2xl shadow-sm">
-            <TrendingUp className="w-10 h-10 text-primary mb-4" />
-            <h3 className="text-lg font-bold mb-2">Earnings Dashboard</h3>
-            <p className="text-muted-foreground flex-1">Visualize your income, track pending payments, and never miss an overdue invoice again.</p>
+        </section>
+
+        {/* Features */}
+        <section className="py-20 px-4 sm:px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold tracking-tight mb-4">Everything a freelancer needs</h2>
+              <p className="text-muted-foreground max-w-xl mx-auto">No bloat. No complexity. Just the tools you actually use every week.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  icon: Users,
+                  title: 'Track every client',
+                  description: 'Keep all your client info — email, phone, address — in one place. See their complete invoice history at a glance.',
+                  color: 'text-blue-400',
+                  bg: 'bg-blue-500/10',
+                },
+                {
+                  icon: Receipt,
+                  title: 'Send professional invoices',
+                  description: 'Create itemized invoices, auto-generate PDF files, and send them directly to clients — all in a few clicks.',
+                  color: 'text-primary',
+                  bg: 'bg-primary/10',
+                },
+                {
+                  icon: TrendingUp,
+                  title: 'Know your numbers',
+                  description: 'Dashboard shows exactly what you\'ve earned, what\'s pending, and what\'s overdue. Never lose track of a payment.',
+                  color: 'text-green-400',
+                  bg: 'bg-green-500/10',
+                },
+              ].map(({ icon: Icon, title, description, color, bg }) => (
+                <div
+                  key={title}
+                  className="group relative p-6 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 hover:bg-card/80 transition-all duration-200"
+                >
+                  <div className={`inline-flex p-3 rounded-xl ${bg} mb-4`}>
+                    <Icon className={`w-6 h-6 ${color}`} />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">{title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
+
+        {/* CTA */}
+        <section className="py-20 px-4 sm:px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-12">
+              <h2 className="text-3xl font-bold mb-4">Ready to take control of your invoicing?</h2>
+              <p className="text-muted-foreground mb-8">Free to use. No credit card required. Set up in minutes.</p>
+              <Link href="/signup">
+                <Button size="lg" className="gap-2 px-10 h-12 text-base">
+                  Create your free account <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
-      <footer className="py-6 w-full shrink-0 items-center px-4 md:px-6 border-t flex flex-col sm:flex-row justify-between text-muted-foreground">
-        <p className="text-xs">© 2026 Invoicer. All rights reserved.</p>
-        <nav className="sm:ml-auto flex gap-4 sm:gap-6 mt-4 sm:mt-0">
-          <Link className="text-xs hover:underline underline-offset-4" href="#">
-            Terms of Service
-          </Link>
-          <Link className="text-xs hover:underline underline-offset-4" href="#">
-            Privacy
-          </Link>
-        </nav>
+
+      {/* Footer */}
+      <footer className="border-t border-border/40 py-8 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Receipt className="w-4 h-4 text-primary" />
+            <span className="font-medium text-foreground">Invoicer</span>
+            <span>— Demo portfolio project</span>
+          </div>
+          <p>© {new Date().getFullYear()} Invoicer. Built with Next.js + Supabase.</p>
+        </div>
       </footer>
     </div>
   )

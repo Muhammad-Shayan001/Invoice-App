@@ -1,46 +1,98 @@
 "use client"
 
+import { useActionState } from 'react'
+import { useFormStatus } from 'react-dom'
 import Link from 'next/link'
 import { signup } from '@/app/auth/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Receipt } from 'lucide-react'
+import { Receipt, Loader2, AlertCircle } from 'lucide-react'
+
+function SubmitButton() {
+  const { pending } = useFormStatus()
+  return (
+    <Button id="signup-submit" type="submit" className="w-full" disabled={pending}>
+      {pending ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Creating account…
+        </>
+      ) : (
+        'Create Account'
+      )}
+    </Button>
+  )
+}
 
 export default function SignupPage() {
+  const [state, formAction] = useActionState(signup, {})
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="w-full max-w-md space-y-6">
+        {/* Logo */}
         <div className="flex flex-col items-center text-center space-y-2 mb-8">
-          <Link href="/" className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-2">
+          <Link href="/" className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-3 hover:bg-primary/20 transition-colors">
             <Receipt className="w-8 h-8 text-primary" />
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight">Create an account</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
           <p className="text-sm text-muted-foreground">Start managing your invoices for free</p>
         </div>
 
-        <Card className="border-border/40 shadow-xl shadow-black/5">
-          <form action={signup}>
+        <Card className="border-border/40 shadow-xl shadow-black/10">
+          <form action={formAction}>
             <CardHeader>
               <CardTitle>Sign Up</CardTitle>
-              <CardDescription>Enter your details to create your account</CardDescription>
+              <CardDescription>Enter your details to get started</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {state?.error && (
+                <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{state.error}</span>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" placeholder="m@example.com" required />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  required
+                  autoComplete="email"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" name="password" type="password" required minLength={6} />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  minLength={8}
+                />
+                <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full">Create Account</Button>
+              <SubmitButton />
               <div className="text-sm text-center text-muted-foreground">
                 Already have an account?{' '}
-                <Link href="/login" className="text-primary hover:underline">
+                <Link href="/login" className="text-primary hover:underline font-medium">
                   Sign in
                 </Link>
               </div>

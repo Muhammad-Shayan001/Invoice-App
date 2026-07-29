@@ -1,95 +1,115 @@
 "use client"
 
-import { ReactNode } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { logout } from '@/app/auth/actions'
 import { Button } from '@/components/ui/button'
-import { Receipt, Users, LayoutDashboard, Settings, LogOut, Menu } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
+import {
+  Receipt,
+  LayoutDashboard,
+  Users,
+  FileText,
+  Settings,
+  LogOut,
+  Menu,
+} from 'lucide-react'
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const NavLinks = () => (
-    <>
-      <Link href="/dashboard" className="flex items-center gap-3 rounded-lg px-3 py-2 text-primary bg-primary/10 transition-all hover:text-primary">
-        <LayoutDashboard className="h-4 w-4" />
-        Dashboard
-      </Link>
-      <Link href="/clients" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-        <Users className="h-4 w-4" />
-        Clients
-      </Link>
-      <Link href="/invoices" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-        <Receipt className="h-4 w-4" />
-        Invoices
-      </Link>
-      <Link href="/settings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary mt-auto">
-        <Settings className="h-4 w-4" />
-        Settings
-      </Link>
-    </>
+const navLinks = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/clients', label: 'Clients', icon: Users },
+  { href: '/invoices', label: 'Invoices', icon: FileText },
+  { href: '/settings', label: 'Settings', icon: Settings },
+]
+
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname()
+  return (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="flex items-center gap-2.5 px-4 py-5 border-b border-border/50">
+        <div className="p-1.5 rounded-lg bg-primary/15">
+          <Receipt className="w-5 h-5 text-primary" />
+        </div>
+        <span className="font-bold text-lg tracking-tight">Invoicer</span>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-1">
+        {navLinks.map(({ href, label, icon: Icon }) => {
+          const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={onNavigate}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                active
+                  ? 'bg-primary/15 text-primary border-l-2 border-primary pl-[10px]'
+                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+              )}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              {label}
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* Logout */}
+      <div className="px-3 py-4 border-t border-border/50">
+        <form action={logout}>
+          <button
+            type="submit"
+            className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-all duration-150"
+          >
+            <LogOut className="w-4 h-4 shrink-0" />
+            Sign Out
+          </button>
+        </form>
+      </div>
+    </div>
   )
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const pathname = usePathname()
+
+  const currentPage = navLinks.find(l => l.href === pathname || (l.href !== '/dashboard' && pathname.startsWith(l.href)))?.label || 'Dashboard'
 
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-      <div className="hidden border-r bg-muted/40 md:block">
-        <div className="flex h-full max-h-screen flex-col gap-2">
-          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
-              <Receipt className="h-6 w-6 text-primary" />
-              <span className="">Invoicer</span>
-            </Link>
-          </div>
-          <div className="flex-1">
-            <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-2 pt-4">
-              <NavLinks />
-            </nav>
-          </div>
-          <div className="mt-auto p-4 border-t">
-            <form action={logout}>
-              <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground">
-                <LogOut className="h-4 w-4" />
-                Logout
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-60 flex-col border-r border-border/50 bg-sidebar shrink-0">
+        <SidebarContent />
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile Header */}
+        <header className="md:hidden flex items-center gap-3 h-14 px-4 border-b border-border/50 bg-background shrink-0">
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger>
+              <Button variant="ghost" size="icon" aria-label="Open menu">
+                <Menu className="w-5 h-5" />
               </Button>
-            </form>
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-col">
-        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 md:hidden">
-          <Sheet>
-            <SheetTrigger
-              render={
-                <Button variant="outline" size="icon" className="shrink-0 md:hidden" />
-              }
-            >
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle navigation menu</span>
             </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col">
-              <div className="flex h-14 items-center border-b px-4 lg:h-[60px] mb-4">
-                <Link href="/" className="flex items-center gap-2 font-semibold">
-                  <Receipt className="h-6 w-6 text-primary" />
-                  <span className="">Invoicer</span>
-                </Link>
-              </div>
-              <nav className="grid gap-2 text-lg font-medium">
-                <NavLinks />
-              </nav>
-              <div className="mt-auto pt-4 border-t">
-                <form action={logout}>
-                  <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground">
-                    <LogOut className="h-5 w-5" />
-                    Logout
-                  </Button>
-                </form>
-              </div>
+            <SheetContent side="left" className="p-0 w-60">
+              <SidebarContent onNavigate={() => setMobileOpen(false)} />
             </SheetContent>
           </Sheet>
-          <div className="w-full flex-1">
-            <h1 className="text-lg font-semibold">Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <Receipt className="w-4 h-4 text-primary" />
+            <span className="font-semibold text-sm">{currentPage}</span>
           </div>
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-muted/10">
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto">
           {children}
         </main>
       </div>
