@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import {
   ArrowLeft, Download, Send, CheckCircle, Pencil, Trash2, Loader2,
   AlertCircle, Lock, RefreshCw, Mail, Phone, MapPin, Calendar, Hash,
-  Copy, Printer, ExternalLink
+  Copy, ExternalLink
 } from 'lucide-react'
 import { computeStatus, computeTotal, formatCurrency, formatDate } from '@/lib/db/invoices'
 import { useToast } from '@/components/toast'
@@ -187,7 +187,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
         </Button>
 
         <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
-          <Printer className="w-3.5 h-3.5" />
+          <Download className="w-3.5 h-3.5" />
           Print
         </Button>
 
