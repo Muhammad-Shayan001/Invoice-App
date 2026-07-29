@@ -11,11 +11,9 @@ export function exportToCSV<T extends Record<string, any>>(
   // Data rows
   const rows = data.map(row => {
     return columns.map(c => {
-      let rawVal = row[c.key as keyof T]
-      if (c.transform) {
-        rawVal = c.transform(rawVal, row)
-      }
-      const stringified = rawVal === null || rawVal === undefined ? '' : String(rawVal)
+      const rawVal = row[c.key as keyof T]
+      const processedVal: unknown = c.transform ? c.transform(rawVal, row) : rawVal
+      const stringified = processedVal === null || processedVal === undefined ? '' : String(processedVal)
       return `"${stringified.replace(/"/g, '""')}"`
     }).join(',')
   })
