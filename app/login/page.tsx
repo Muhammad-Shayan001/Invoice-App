@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Receipt, Loader2, AlertCircle } from 'lucide-react'
+import { Receipt, Loader2, AlertCircle, Mail } from 'lucide-react'
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -16,7 +16,7 @@ function SubmitButton() {
     <Button id="login-submit" type="submit" className="w-full" disabled={pending}>
       {pending ? (
         <>
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="w-4 h-4 animate-spin mr-2" />
           Signing in…
         </>
       ) : (
@@ -54,6 +54,13 @@ export default function LoginPage() {
                   <span>{state.error}</span>
                 </div>
               )}
+              {/* Email confirmation hint */}
+              {state?.error?.includes('confirmation') && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-400">
+                  <Mail className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>Check your inbox and click the confirmation link, then sign in here.</span>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -68,7 +75,7 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link href="/login/forgot-password" className="text-xs text-primary hover:underline">
+                  <Link href="/forgot-password" className="text-xs text-primary hover:underline">
                     Forgot password?
                   </Link>
                 </div>

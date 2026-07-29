@@ -13,7 +13,7 @@ export async function login(
     const supabase = await createClient()
 
     const parsed = z.object({
-      email: z.email('Invalid email address'),
+      email: z.string().email('Invalid email address'),
       password: z.string().min(1, 'Password is required'),
     }).safeParse({
       email: formData.get('email'),
@@ -27,17 +27,20 @@ export async function login(
     const { error } = await supabase.auth.signInWithPassword(parsed.data)
 
     if (error) {
-      if (error.message.includes('Invalid login credentials')) {
+      if (
+        error.message.includes('Invalid login credentials') ||
+        error.message.includes('invalid_credentials')
+      ) {
         return { error: 'Incorrect email or password. Please try again.' }
       }
       if (error.message.includes('Email not confirmed')) {
-        return { error: 'Please verify your email before signing in.' }
+        return { error: 'Please check your email and click the confirmation link before signing in.' }
       }
       return { error: error.message }
     }
   } catch (err: any) {
-    console.error("Login network/server error:", err)
-    return { error: "Configuration Error: Please check your Supabase URL and Keys in your environment variables." }
+    console.error('Login error:', err)
+    return { error: err?.message || 'An unexpected error occurred. Please try again.' }
   }
 
   revalidatePath('/', 'layout')
@@ -45,14 +48,14 @@ export async function login(
 }
 
 export async function signup(
-  prevState: { error?: string },
+  prevState: { error?: string; success?: boolean },
   formData: FormData
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; success?: boolean }> {
   try {
     const supabase = await createClient()
 
     const parsed = z.object({
-      email: z.email('Invalid email address'),
+      email: z.string().email('Invalid email address'),
       password: z.string().min(8, 'Password must be at least 8 characters'),
       confirmPassword: z.string(),
     }).refine(d => d.password === d.confirmPassword, {
@@ -68,29 +71,40 @@ export async function signup(
       return { error: parsed.error.issues[0]?.message || 'Invalid input' }
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
     })
 
     if (error) {
-      if (error.message.includes('User already registered')) {
-        return { error: 'An account with this email already exists.' }
+      if (
+        error.message.includes('User already registered') ||
+        error.message.includes('already been registered')
+      ) {
+        return { error: 'An account with this email already exists. Please sign in instead.' }
       }
       return { error: error.message }
     }
+
+    // If user is created but session is null → email confirmation required
+    if (data.user && !data.session) {
+      return { success: true }
+    }
   } catch (err: any) {
-    console.error("Signup network/server error:", err)
-    return { error: "Configuration Error: Please check your Supabase URL and Keys in your environment variables." }
+    console.error('Signup error:', err)
+    return { error: err?.message || 'An unexpected error occurred. Please try again.' }
   }
 
+  // If we have a session (email confirmation disabled), go straight to dashboard
   revalidatePath('/', 'layout')
   redirect('/dashboard')
 }
 
 export async function logout(): Promise<void> {
-  const supabase = await createClient()
-  await supabase.auth.signOut()
+  try {
+    const supabase = await createClient()
+    await supabase.auth.signOut()
+  } catch {}
   revalidatePath('/', 'layout')
   redirect('/login')
 }
@@ -99,15 +113,19 @@ export async function forgotPassword(
   prevState: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const email = formData.get('email') as string
-  if (!email) return { error: 'Email is required' }
+    const email = (formData.get('email') as string)?.trim()
+    if (!email) return { error: 'Email is required' }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/reset-password`,
-  })
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/reset-password`,
+    })
 
-  if (error) return { error: error.message }
-  return { success: true }
+    if (error) return { error: error.message }
+    return { success: true }
+  } catch (err: any) {
+    return { error: err?.message || 'Failed to send reset email.' }
+  }
 }

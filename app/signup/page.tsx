@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Receipt, Loader2, AlertCircle } from 'lucide-react'
+import { Receipt, Loader2, AlertCircle, Mail, CheckCircle2 } from 'lucide-react'
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -16,7 +16,7 @@ function SubmitButton() {
     <Button id="signup-submit" type="submit" className="w-full" disabled={pending}>
       {pending ? (
         <>
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="w-4 h-4 animate-spin mr-2" />
           Creating account…
         </>
       ) : (
@@ -28,6 +28,38 @@ function SubmitButton() {
 
 export default function SignupPage() {
   const [state, formAction] = useActionState(signup, {})
+
+  // Show success / email confirmation screen
+  if (state?.success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+        <div className="w-full max-w-md">
+          <Card className="border-border/40 shadow-xl shadow-black/10 text-center">
+            <CardContent className="pt-10 pb-10 flex flex-col items-center gap-4">
+              <div className="p-4 bg-green-500/10 rounded-full">
+                <Mail className="w-10 h-10 text-green-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold tracking-tight mb-2">Check your email!</h2>
+                <p className="text-muted-foreground text-sm">
+                  We've sent a confirmation link to your email address.
+                  <br />
+                  Click the link in the email to activate your account.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 bg-muted/40 rounded-lg px-4 py-2">
+                <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+                Account created — just needs email verification
+              </div>
+              <Link href="/login" className="w-full mt-2">
+                <Button variant="outline" className="w-full">Go to Sign In</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
