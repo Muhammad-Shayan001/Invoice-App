@@ -7,7 +7,7 @@ import {
   createClientAction,
   updateClientAction,
   deleteClientAction,
-} from '@/app/clients/actions'
+} from '@/app/(app)/clients/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

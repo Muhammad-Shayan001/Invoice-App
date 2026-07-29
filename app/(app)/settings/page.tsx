@@ -3,7 +3,7 @@
 import { useEffect, useActionState, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { createClient } from '@/utils/supabase/client'
-import { updateSettingsAction, changePasswordAction } from '@/app/settings/actions'
+import { updateSettingsAction, changePasswordAction } from '@/app/(app)/settings/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
