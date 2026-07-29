@@ -9,21 +9,21 @@ export async function login(
   prevState: { error?: string },
   formData: FormData
 ): Promise<{ error?: string }> {
-  const supabase = await createClient()
-
-  const parsed = z.object({
-    email: z.email('Invalid email address'),
-    password: z.string().min(1, 'Password is required'),
-  }).safeParse({
-    email: formData.get('email'),
-    password: formData.get('password'),
-  })
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message || 'Invalid input' }
-  }
-
   try {
+    const supabase = await createClient()
+
+    const parsed = z.object({
+      email: z.email('Invalid email address'),
+      password: z.string().min(1, 'Password is required'),
+    }).safeParse({
+      email: formData.get('email'),
+      password: formData.get('password'),
+    })
+
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message || 'Invalid input' }
+    }
+
     const { error } = await supabase.auth.signInWithPassword(parsed.data)
 
     if (error) {
@@ -37,7 +37,7 @@ export async function login(
     }
   } catch (err: any) {
     console.error("Login network/server error:", err)
-    return { error: "Could not connect to the database. Please check your Supabase keys." }
+    return { error: "Configuration Error: Please check your Supabase URL and Keys in your environment variables." }
   }
 
   revalidatePath('/', 'layout')
@@ -48,26 +48,26 @@ export async function signup(
   prevState: { error?: string },
   formData: FormData
 ): Promise<{ error?: string }> {
-  const supabase = await createClient()
-
-  const parsed = z.object({
-    email: z.email('Invalid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string(),
-  }).refine(d => d.password === d.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  }).safeParse({
-    email: formData.get('email'),
-    password: formData.get('password'),
-    confirmPassword: formData.get('confirmPassword'),
-  })
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message || 'Invalid input' }
-  }
-
   try {
+    const supabase = await createClient()
+
+    const parsed = z.object({
+      email: z.email('Invalid email address'),
+      password: z.string().min(8, 'Password must be at least 8 characters'),
+      confirmPassword: z.string(),
+    }).refine(d => d.password === d.confirmPassword, {
+      message: "Passwords don't match",
+      path: ['confirmPassword'],
+    }).safeParse({
+      email: formData.get('email'),
+      password: formData.get('password'),
+      confirmPassword: formData.get('confirmPassword'),
+    })
+
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message || 'Invalid input' }
+    }
+
     const { error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
@@ -81,7 +81,7 @@ export async function signup(
     }
   } catch (err: any) {
     console.error("Signup network/server error:", err)
-    return { error: "Could not connect to the database. Please check your Supabase keys." }
+    return { error: "Configuration Error: Please check your Supabase URL and Keys in your environment variables." }
   }
 
   revalidatePath('/', 'layout')
