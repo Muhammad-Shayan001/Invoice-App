@@ -4,13 +4,14 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { deleteInvoiceAction } from '@/app/(app)/invoices/actions'
+import { exportToCSV } from '@/lib/utils/csv'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Plus, Search, Eye, Pencil, Trash2, FileText, Loader2, Filter } from 'lucide-react'
+import { Plus, Search, Eye, Pencil, Trash2, FileText, Loader2, Filter, Download, DollarSign, Clock, AlertCircle } from 'lucide-react'
 import { computeStatus, computeTotal, formatCurrency, formatDate } from '@/lib/db/invoices'
 import { useToast } from '@/components/toast'
 import type { InvoiceWithDetails, Client } from '@/types/database'
@@ -58,6 +59,18 @@ export default function InvoicesPage() {
     return true
   })
 
+  const handleExportCSV = () => {
+    exportToCSV('invoices_export', filtered, [
+      { key: 'invoice_number', label: 'Invoice Number' },
+      { key: 'clients', label: 'Client Name', transform: (c) => c?.name || '' },
+      { key: 'issue_date', label: 'Issue Date' },
+      { key: 'due_date', label: 'Due Date' },
+      { key: 'total', label: 'Total Amount ($)', transform: (t) => t ? String(t) : '0' },
+      { key: 'status', label: 'Status' },
+    ])
+    toast.success(`Exported ${filtered.length} invoice(s) to CSV!`)
+  }
+
   const handleDelete = async () => {
     if (!deleteInv) return
     setDeleting(true)
@@ -72,20 +85,62 @@ export default function InvoicesPage() {
     }
   }
 
+  // Summary Metrics
+  const totalBilled = filtered.reduce((s, i) => s + i.total, 0)
+  const paidTotal = filtered.filter(i => i.status === 'paid').reduce((s, i) => s + i.total, 0)
+  const unpaidTotal = filtered.filter(i => i.status === 'unpaid').reduce((s, i) => s + i.total, 0)
+
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Invoices</h1>
-          <p className="text-muted-foreground text-sm mt-1">{invoices.length} invoice{invoices.length !== 1 ? 's' : ''} total</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{invoices.length} invoice{invoices.length !== 1 ? 's' : ''} total</p>
         </div>
-        <Link href="/invoices/new">
-          <Button id="new-invoice-btn" size="sm" className="gap-1.5">
-            <Plus className="w-4 h-4" />
-            New Invoice
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-1.5" disabled={filtered.length === 0}>
+            <Download className="w-3.5 h-3.5" />
+            Export CSV
           </Button>
-        </Link>
+          <Link href="/invoices/new">
+            <Button id="new-invoice-btn" size="sm" className="gap-1.5">
+              <Plus className="w-4 h-4" />
+              New Invoice
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-xl border border-border/50 bg-card flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-green-500/10 text-green-400">
+            <DollarSign className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Total Billed</p>
+            <p className="text-lg font-bold">{formatCurrency(totalBilled)}</p>
+          </div>
+        </div>
+        <div className="p-3.5 rounded-xl border border-border/50 bg-card flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+            <DollarSign className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Collected</p>
+            <p className="text-lg font-bold">{formatCurrency(paidTotal)}</p>
+          </div>
+        </div>
+        <div className="p-3.5 rounded-xl border border-border/50 bg-card flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+            <Clock className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Outstanding</p>
+            <p className="text-lg font-bold">{formatCurrency(unpaidTotal)}</p>
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
@@ -96,7 +151,7 @@ export default function InvoicesPage() {
         </div>
         <div className="flex gap-2">
           <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'all')}>
-            <SelectTrigger className="w-36 h-8">
+            <SelectTrigger className="w-36 h-9">
               <Filter className="w-3.5 h-3.5 text-muted-foreground mr-1" />
               <SelectValue />
             </SelectTrigger>
@@ -108,7 +163,7 @@ export default function InvoicesPage() {
             </SelectContent>
           </Select>
           <Select value={clientFilter} onValueChange={(val) => setClientFilter(val || 'all')}>
-            <SelectTrigger className="w-40 h-8">
+            <SelectTrigger className="w-40 h-9">
               <SelectValue placeholder="All Clients" />
             </SelectTrigger>
             <SelectContent>

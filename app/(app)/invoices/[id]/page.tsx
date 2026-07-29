@@ -4,7 +4,12 @@ import { use, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
-import { markInvoicePaidAction, markInvoiceUnpaidAction, deleteInvoiceAction } from '@/app/(app)/invoices/actions'
+import {
+  markInvoicePaidAction,
+  markInvoiceUnpaidAction,
+  deleteInvoiceAction,
+  duplicateInvoiceAction,
+} from '@/app/(app)/invoices/actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import {
   ArrowLeft, Download, Send, CheckCircle, Pencil, Trash2, Loader2,
   AlertCircle, Lock, RefreshCw, Mail, Phone, MapPin, Calendar, Hash,
+  Copy, Share2, Printer, ExternalLink
 } from 'lucide-react'
 import { computeStatus, computeTotal, formatCurrency, formatDate } from '@/lib/db/invoices'
 import { useToast } from '@/components/toast'
@@ -31,6 +37,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [notFound, setNotFound] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [sending, setSending] = useState(false)
+  const [duplicating, setDuplicating] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [deleting, setDeleting] = useState(false)
 
@@ -66,6 +73,20 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     else { toast.success('Invoice reopened'); load() }
   })
 
+  const handleDuplicate = () => startTransition(async () => {
+    setDuplicating(true)
+    const result = await duplicateInvoiceAction(id)
+    setDuplicating(false)
+    if (result?.error) toast.error(result.error)
+    else toast.success('Invoice duplicated as new draft!')
+  })
+
+  const handleCopyShareLink = () => {
+    const shareUrl = `${window.location.origin}/pay/${id}`
+    navigator.clipboard.writeText(shareUrl)
+    toast.success('Client payment link copied to clipboard!')
+  }
+
   const handleSend = async () => {
     if (!invoice?.clients?.email) { toast.error('Client has no email address'); return }
     setSending(true)
@@ -73,7 +94,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       const res = await fetch(`/api/invoices/${id}/send`, { method: 'POST' })
       const json = await res.json()
       if (json.error) toast.error(json.error)
-      else toast.success(`Invoice sent to ${invoice.clients.email}`)
+      else toast.success(`Invoice sent directly to ${invoice.clients.email}`)
     } catch {
       toast.error('Failed to send email')
     } finally {
@@ -137,25 +158,49 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
         <a href={`/api/invoices/${id}/pdf`} download target="_blank" rel="noopener noreferrer">
           <Button variant="outline" size="sm" className="gap-1.5">
             <Download className="w-3.5 h-3.5" />
-            Download PDF
+            PDF
           </Button>
         </a>
+
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={handleCopyShareLink}>
+          <Share2 className="w-3.5 h-3.5 text-primary" />
+          Share Link
+        </Button>
+
+        <a href={`/pay/${id}`} target="_blank" rel="noopener noreferrer">
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <ExternalLink className="w-3.5 h-3.5" />
+            Client View
+          </Button>
+        </a>
+
         {invoice.clients?.email && (
           <Button variant="outline" size="sm" className="gap-1.5" onClick={handleSend} disabled={sending}>
             {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             Send to Client
           </Button>
         )}
+
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={handleDuplicate} disabled={duplicating}>
+          {duplicating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+          Duplicate
+        </Button>
+
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.print()}>
+          <Printer className="w-3.5 h-3.5" />
+          Print
+        </Button>
+
         {!isPaid && (
           <Button size="sm" className="gap-1.5 bg-green-600 hover:bg-green-700 text-white" onClick={handleMarkPaid} disabled={isPending}>
             {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-            Mark as Paid
+            Mark Paid
           </Button>
         )}
         {isPaid && (
           <Button variant="outline" size="sm" className="gap-1.5" onClick={handleMarkUnpaid} disabled={isPending}>
             {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            Reopen Invoice
+            Reopen
           </Button>
         )}
         {!isPaid && (

@@ -8,17 +8,18 @@ import {
   updateClientAction,
   deleteClientAction,
 } from '@/app/(app)/clients/actions'
+import { exportToCSV } from '@/lib/utils/csv'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
 import {
-  Plus, Search, Pencil, Trash2, Users, Mail, Phone, MapPin, Loader2, AlertCircle,
+  Plus, Search, Pencil, Trash2, Users, Mail, Phone, Loader2, AlertCircle, Download,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/db/invoices'
 import { useToast } from '@/components/toast'
@@ -117,6 +118,18 @@ export default function ClientsPage() {
     (c.email && c.email.toLowerCase().includes(search.toLowerCase()))
   )
 
+  const handleExportCSV = () => {
+    exportToCSV('clients_export', filtered, [
+      { key: 'name', label: 'Client Name' },
+      { key: 'email', label: 'Email' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'address', label: 'Address' },
+      { key: 'invoice_count', label: 'Total Invoices', transform: (v) => String(v || 0) },
+      { key: 'total_billed', label: 'Total Billed ($)', transform: (v) => String(v || 0) },
+    ])
+    toast.success(`Exported ${filtered.length} client(s) to CSV!`)
+  }
+
   const handleDeleteConfirm = async () => {
     if (!deleteClient) return
     setDeleting(true)
@@ -134,15 +147,21 @@ export default function ClientsPage() {
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
-          <p className="text-muted-foreground text-sm mt-1">{clients.length} client{clients.length !== 1 ? 's' : ''}</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{clients.length} client{clients.length !== 1 ? 's' : ''}</p>
         </div>
-        <Button id="add-client-btn" size="sm" className="gap-1.5" onClick={() => setAddOpen(true)}>
-          <Plus className="w-4 h-4" />
-          Add Client
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportCSV} className="gap-1.5" disabled={filtered.length === 0}>
+            <Download className="w-3.5 h-3.5" />
+            Export CSV
+          </Button>
+          <Button id="add-client-btn" size="sm" className="gap-1.5" onClick={() => setAddOpen(true)}>
+            <Plus className="w-4 h-4" />
+            Add Client
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
