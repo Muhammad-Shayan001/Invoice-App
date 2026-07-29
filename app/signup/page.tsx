@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Receipt, Loader2, AlertCircle, Mail, CheckCircle2 } from 'lucide-react'
+import { Receipt, Loader2, AlertCircle, Mail, CheckCircle } from 'lucide-react'
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -48,7 +48,7 @@ export default function SignupPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 bg-muted/40 rounded-lg px-4 py-2">
-                <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+                <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
                 Account created — just needs email verification
               </div>
               <Link href="/login" className="w-full mt-2">
