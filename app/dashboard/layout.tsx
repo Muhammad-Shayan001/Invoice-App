@@ -55,11 +55,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="flex flex-col">
         <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 md:hidden">
           <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="shrink-0 md:hidden">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle navigation menu</span>
-              </Button>
+            <SheetTrigger
+              render={
+                <Button variant="outline" size="icon" className="shrink-0 md:hidden" />
+              }
+            >
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle navigation menu</span>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col">
               <div className="flex h-14 items-center border-b px-4 lg:h-[60px] mb-4">
