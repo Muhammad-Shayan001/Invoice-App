@@ -5,7 +5,10 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { z } from 'zod'
 
-export async function login(prevState: { error?: string }, formData: FormData) {
+export async function login(
+  prevState: { error?: string },
+  formData: FormData
+): Promise<{ error?: string }> {
   const supabase = await createClient()
 
   const parsed = z.object({
@@ -17,7 +20,7 @@ export async function login(prevState: { error?: string }, formData: FormData) {
   })
 
   if (!parsed.success) {
-    return { error: parsed.error.errors[0].message }
+    return { error: parsed.error.issues[0]?.message || 'Invalid input' }
   }
 
   const { error } = await supabase.auth.signInWithPassword(parsed.data)
@@ -36,7 +39,10 @@ export async function login(prevState: { error?: string }, formData: FormData) {
   redirect('/dashboard')
 }
 
-export async function signup(prevState: { error?: string }, formData: FormData) {
+export async function signup(
+  prevState: { error?: string },
+  formData: FormData
+): Promise<{ error?: string }> {
   const supabase = await createClient()
 
   const parsed = z.object({
@@ -53,7 +59,7 @@ export async function signup(prevState: { error?: string }, formData: FormData) 
   })
 
   if (!parsed.success) {
-    return { error: parsed.error.errors[0].message }
+    return { error: parsed.error.issues[0]?.message || 'Invalid input' }
   }
 
   const { error } = await supabase.auth.signUp({
@@ -72,14 +78,17 @@ export async function signup(prevState: { error?: string }, formData: FormData) 
   redirect('/dashboard')
 }
 
-export async function logout() {
+export async function logout(): Promise<void> {
   const supabase = await createClient()
   await supabase.auth.signOut()
   revalidatePath('/', 'layout')
   redirect('/login')
 }
 
-export async function forgotPassword(prevState: { error?: string; success?: boolean }, formData: FormData) {
+export async function forgotPassword(
+  prevState: { error?: string; success?: boolean },
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
 
   const email = formData.get('email') as string

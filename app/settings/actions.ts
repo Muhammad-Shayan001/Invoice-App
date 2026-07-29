@@ -13,7 +13,7 @@ const settingsSchema = z.object({
 export async function updateSettingsAction(
   prevState: { error?: string; success?: boolean },
   formData: FormData
-) {
+): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -24,7 +24,7 @@ export async function updateSettingsAction(
     default_notes: formData.get('default_notes') || undefined,
   })
 
-  if (!parsed.success) return { error: parsed.error.errors[0].message }
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message || 'Invalid input' }
 
   const { error } = await supabase.from('profiles').upsert({
     id: user.id,
@@ -42,7 +42,7 @@ export async function updateSettingsAction(
 export async function changePasswordAction(
   prevState: { error?: string; success?: boolean },
   formData: FormData
-) {
+): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
 
   const newPassword = formData.get('new_password') as string

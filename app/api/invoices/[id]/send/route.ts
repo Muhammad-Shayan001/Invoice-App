@@ -55,7 +55,7 @@ export async function POST(
       inv: { ...inv, businessName },
     })
 
-    const pdfBuffer = await renderToBuffer(pdfElement)
+    const pdfBuffer = await renderToBuffer(pdfElement as any)
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'sandbox.smtp.mailtrap.io',

@@ -95,7 +95,7 @@ export default function InvoicesPage() {
           <Input placeholder="Search invoice # or client…" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'all')}>
             <SelectTrigger className="w-36 h-8">
               <Filter className="w-3.5 h-3.5 text-muted-foreground mr-1" />
               <SelectValue />
@@ -107,7 +107,7 @@ export default function InvoicesPage() {
               <SelectItem value="overdue">Overdue</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={clientFilter} onValueChange={setClientFilter}>
+          <Select value={clientFilter} onValueChange={(val) => setClientFilter(val || 'all')}>
             <SelectTrigger className="w-40 h-8">
               <SelectValue placeholder="All Clients" />
             </SelectTrigger>

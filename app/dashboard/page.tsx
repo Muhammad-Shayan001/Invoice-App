@@ -199,7 +199,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="label" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                   <YAxis tickFormatter={(v) => `$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                   <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), 'Earned']}
+                    formatter={(value: any) => [formatCurrency(Number(value) || 0), 'Earned']}
                     contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 13 }}
                     cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                   />

@@ -14,7 +14,7 @@ const clientSchema = z.object({
 export async function createClientAction(
   prevState: { error?: string; success?: boolean },
   formData: FormData
-) {
+): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -26,7 +26,7 @@ export async function createClientAction(
     address: formData.get('address') || undefined,
   })
 
-  if (!parsed.success) return { error: parsed.error.errors[0].message }
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message || 'Invalid input' }
 
   const { error } = await supabase.from('clients').insert({
     user_id: user.id,
@@ -46,7 +46,7 @@ export async function updateClientAction(
   id: string,
   prevState: { error?: string; success?: boolean },
   formData: FormData
-) {
+): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -58,7 +58,7 @@ export async function updateClientAction(
     address: formData.get('address') || undefined,
   })
 
-  if (!parsed.success) return { error: parsed.error.errors[0].message }
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message || 'Invalid input' }
 
   const { error } = await supabase.from('clients').update({
     name: parsed.data.name,
@@ -73,7 +73,7 @@ export async function updateClientAction(
   return { success: true }
 }
 
-export async function deleteClientAction(id: string) {
+export async function deleteClientAction(id: string): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }

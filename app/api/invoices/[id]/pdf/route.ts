@@ -41,9 +41,9 @@ export async function GET(
       inv: { ...inv, businessName },
     })
 
-    const pdfBuffer = await renderToBuffer(pdfElement)
+    const pdfBuffer = await renderToBuffer(pdfElement as any)
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

@@ -3,7 +3,6 @@
 import { useEffect, useActionState, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { createInvoiceAction } from '@/app/invoices/actions'
 import { Button } from '@/components/ui/button'
@@ -101,7 +100,7 @@ export default function NewInvoicePage() {
                     <Link href="/clients" className="text-primary hover:underline">Add a client first →</Link>
                   </div>
                 ) : (
-                  <Select value={clientId} onValueChange={setClientId}>
+                  <Select value={clientId} onValueChange={(val) => setClientId(val || '')}>
                     <SelectTrigger className="h-9 w-full">
                       <SelectValue placeholder="Select a client…" />
                     </SelectTrigger>

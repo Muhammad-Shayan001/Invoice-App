@@ -22,7 +22,7 @@ const invoiceSchema = z.object({
 export async function createInvoiceAction(
   prevState: { error?: string; success?: boolean },
   formData: FormData
-) {
+): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -34,14 +34,14 @@ export async function createInvoiceAction(
     notes: formData.get('notes') || undefined,
   })
 
-  if (!parsed.success) return { error: parsed.error.errors[0].message }
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message || 'Invalid input' }
 
   // Parse items from JSON
   let items: z.infer<typeof itemSchema>[] = []
   try {
     const raw = JSON.parse(formData.get('items') as string || '[]')
     const itemsParsed = z.array(itemSchema).safeParse(raw)
-    if (!itemsParsed.success) return { error: 'Invalid line items: ' + itemsParsed.error.errors[0].message }
+    if (!itemsParsed.success) return { error: 'Invalid line items: ' + (itemsParsed.error.issues[0]?.message || '') }
     items = itemsParsed.data
   } catch {
     return { error: 'Invalid items format' }
@@ -77,7 +77,7 @@ export async function updateInvoiceAction(
   id: string,
   prevState: { error?: string; success?: boolean },
   formData: FormData
-) {
+): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -93,7 +93,7 @@ export async function updateInvoiceAction(
     notes: formData.get('notes') || undefined,
   })
 
-  if (!parsed.success) return { error: parsed.error.errors[0].message }
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message || 'Invalid input' }
 
   let items: z.infer<typeof itemSchema>[] = []
   try {

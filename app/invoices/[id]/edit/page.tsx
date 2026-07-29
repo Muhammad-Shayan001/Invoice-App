@@ -153,7 +153,7 @@ export default function EditInvoicePage({ params }: { params: Promise<{ id: stri
               <CardContent className="space-y-4">
                 <div className="space-y-1.5">
                   <Label>Client <span className="text-destructive">*</span></Label>
-                  <Select value={clientId} onValueChange={setClientId}>
+                  <Select value={clientId} onValueChange={(val) => setClientId(val || '')}>
                     <SelectTrigger className="h-9 w-full">
                       <SelectValue placeholder="Select a client…" />
                     </SelectTrigger>
