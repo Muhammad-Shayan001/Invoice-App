@@ -9,6 +9,8 @@ export async function login(
   prevState: { error?: string },
   formData: FormData
 ): Promise<{ error?: string }> {
+  let redirectTo: string | null = null
+
   try {
     const supabase = await createClient()
 
@@ -29,8 +31,7 @@ export async function login(
     if (error) {
       if (
         error.message.includes('Invalid login credentials') ||
-        error.message.includes('invalid_credentials') ||
-        error.message.includes('Invalid email or password')
+        error.message.includes('invalid_credentials')
       ) {
         return { error: 'Incorrect email or password. Please try again.' }
       }
@@ -38,23 +39,32 @@ export async function login(
         error.message.includes('Email not confirmed') ||
         error.message.includes('email_not_confirmed')
       ) {
-        return { error: 'Your email is not confirmed yet. Please check your inbox or sign up again.' }
+        return { error: 'Email not confirmed. Please check your inbox or disable email confirmation in Supabase.' }
       }
       return { error: error.message }
     }
+
+    redirectTo = '/dashboard'
   } catch (err: any) {
     console.error('Login error:', err)
     return { error: err?.message || 'An unexpected error occurred. Please try again.' }
   }
 
-  revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  if (redirectTo) {
+    revalidatePath('/', 'layout')
+    redirect(redirectTo)
+  }
+
+  return {}
 }
 
 export async function signup(
   prevState: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
+  let redirectTo: string | null = null
+  let showSuccess = false
+
   try {
     const supabase = await createClient()
 
@@ -88,40 +98,49 @@ export async function signup(
       ) {
         return { error: 'An account with this email already exists. Please sign in instead.' }
       }
+
       if (error.message.includes('rate limit') || error.message.includes('email rate limit')) {
-        // Rate limit hit — the account IS created, try signing in directly
+        // Rate limit — account may already exist, try signing in directly
         const { error: loginErr } = await supabase.auth.signInWithPassword({
           email: parsed.data.email,
           password: parsed.data.password,
         })
         if (!loginErr) {
-          // Signed in successfully — fall through to redirect
+          redirectTo = '/dashboard'
         } else {
-          return { success: true } // Account created, email pending
+          showSuccess = true // Account created, but email is pending
         }
       } else {
         return { error: error.message }
       }
+    } else {
+      // No error from signUp
+      if (data?.session) {
+        // Email confirmation is OFF — user is signed in immediately
+        redirectTo = '/dashboard'
+      } else if (data?.user) {
+        // Email confirmation is ON — show "check your email" screen
+        showSuccess = true
+      } else {
+        return { error: 'Something went wrong. Please try again.' }
+      }
     }
-
-    // If email confirmation is ON and no session yet → show "check email" screen
-    if (data?.user && !data?.session) {
-      return { success: true }
-    }
-
-    // If session exists (email confirmation OFF) → redirect to dashboard immediately
-    if (data?.session) {
-      revalidatePath('/', 'layout')
-      redirect('/dashboard')
-    }
-
-    return { success: true }
   } catch (err: any) {
-    // Check if the error is actually a redirect (Next.js throws redirects as errors)
-    if ((err as any)?.digest?.startsWith('NEXT_REDIRECT')) throw err
     console.error('Signup error:', err)
     return { error: err?.message || 'An unexpected error occurred. Please try again.' }
   }
+
+  // Perform redirect outside try-catch (Next.js redirect() throws internally)
+  if (redirectTo) {
+    revalidatePath('/', 'layout')
+    redirect(redirectTo)
+  }
+
+  if (showSuccess) {
+    return { success: true }
+  }
+
+  return {}
 }
 
 export async function logout(): Promise<void> {
@@ -137,6 +156,8 @@ export async function forgotPassword(
   prevState: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
+  let showSuccess = false
+
   try {
     const supabase = await createClient()
 
@@ -148,8 +169,11 @@ export async function forgotPassword(
     })
 
     if (error) return { error: error.message }
-    return { success: true }
+    showSuccess = true
   } catch (err: any) {
     return { error: err?.message || 'Failed to send reset email.' }
   }
+
+  if (showSuccess) return { success: true }
+  return {}
 }
