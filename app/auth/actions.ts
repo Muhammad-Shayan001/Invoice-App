@@ -5,10 +5,26 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { z } from 'zod'
 
+function isFetchError(err: any): boolean {
+  const msg: string = (err?.message || err?.cause?.message || '').toLowerCase()
+  return (
+    msg.includes('fetch failed') ||
+    msg.includes('econnrefused') ||
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror') ||
+    msg.includes('network request failed')
+  )
+}
+
 export async function login(
   prevState: { error?: string },
   formData: FormData
 ): Promise<{ error?: string }> {
+  // Validate env vars before making any network call
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return { error: 'Server configuration error: Supabase environment variables are not set. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your Vercel project settings and redeploy.' }
+  }
+
   let redirectTo: string | null = null
 
   try {
@@ -47,6 +63,9 @@ export async function login(
     redirectTo = '/dashboard'
   } catch (err: any) {
     console.error('Login error:', err)
+    if (isFetchError(err)) {
+      return { error: 'Cannot reach the authentication server. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in your Vercel environment variables.' }
+    }
     return { error: err?.message || 'An unexpected error occurred. Please try again.' }
   }
 
@@ -62,6 +81,10 @@ export async function signup(
   prevState: { error?: string; success?: boolean },
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return { error: 'Server configuration error: Supabase environment variables are not set. Please add them to your Vercel project settings and redeploy.' }
+  }
+
   let redirectTo: string | null = null
   let showSuccess = false
 
@@ -127,6 +150,9 @@ export async function signup(
     }
   } catch (err: any) {
     console.error('Signup error:', err)
+    if (isFetchError(err)) {
+      return { error: 'Cannot reach the authentication server. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in your Vercel environment variables.' }
+    }
     return { error: err?.message || 'An unexpected error occurred. Please try again.' }
   }
 
@@ -171,6 +197,9 @@ export async function forgotPassword(
     if (error) return { error: error.message }
     showSuccess = true
   } catch (err: any) {
+    if (isFetchError(err)) {
+      return { error: 'Cannot reach the authentication server. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in your Vercel environment variables.' }
+    }
     return { error: err?.message || 'Failed to send reset email.' }
   }
 
