@@ -11,9 +11,11 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Plus, Trash2, Loader2, AlertCircle, Users } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
+import { ArrowLeft, Plus, Trash2, Loader2, AlertCircle, Users, Clock, Sparkles } from 'lucide-react'
 import { formatCurrency } from '@/lib/db/invoices'
-import type { Client } from '@/types/database'
+import { useToast } from '@/components/toast'
+import type { Client, TimeEntry } from '@/types/database'
 
 interface LineItem {
   id: string
@@ -33,6 +35,7 @@ function SubmitBtn() {
 }
 
 export default function NewInvoicePage() {
+  const toast = useToast()
   const [clients, setClients] = useState<Client[]>([])
   const [clientId, setClientId] = useState('')
   const [items, setItems] = useState<LineItem[]>([
@@ -43,10 +46,70 @@ export default function NewInvoicePage() {
   const [dueDate, setDueDate] = useState('')
   const [state, formAction] = useActionState(createInvoiceAction, {})
 
+  // Import Time Tracker Modal State
+  const [importOpen, setImportOpen] = useState(false)
+  const [unbilledEntries, setUnbilledEntries] = useState<TimeEntry[]>([])
+  const [selectedTimeIds, setSelectedTimeIds] = useState<string[]>([])
+  const [loadingTime, setLoadingTime] = useState(false)
+
   useEffect(() => {
     const supabase = createClient()
     supabase.from('clients').select('*').order('name').then(({ data }) => setClients(data || []))
   }, [])
+
+  // Load unbilled time entries when import dialog opens or client changes
+  const loadUnbilledTime = async (cId: string) => {
+    if (!cId) return
+    setLoadingTime(true)
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('time_entries')
+      .select('*')
+      .eq('client_id', cId)
+      .eq('billed', false)
+      .not('ended_at', 'is', null)
+
+    setUnbilledEntries(data || [])
+    setSelectedTimeIds((data || []).map(e => e.id)) // select all by default
+    setLoadingTime(false)
+  }
+
+  const handleOpenImport = () => {
+    if (!clientId) {
+      toast.error('Please select a client first before importing time entries.')
+      return
+    }
+    loadUnbilledTime(clientId)
+    setImportOpen(true)
+  }
+
+  const handleConfirmImport = () => {
+    const selected = unbilledEntries.filter(e => selectedTimeIds.includes(e.id))
+    if (selected.length === 0) {
+      toast.error('No time entries selected')
+      return
+    }
+
+    const selectedClient = clients.find(c => c.id === clientId)
+    const fallbackRate = selectedClient?.hourly_rate || 50
+
+    const newItems: LineItem[] = selected.map(e => ({
+      id: crypto.randomUUID(),
+      description: e.description ? `Time Tracked: ${e.description}` : `Time Tracked (${new Date(e.started_at).toLocaleDateString()})`,
+      quantity: Math.round(((e.duration_minutes || 0) / 60) * 100) / 100,
+      unit_price: fallbackRate,
+    }))
+
+    // Replace or append
+    if (items.length === 1 && !items[0].description) {
+      setItems(newItems)
+    } else {
+      setItems([...items, ...newItems])
+    }
+
+    setImportOpen(false)
+    toast.success(`Imported ${newItems.length} time entries into invoice!`)
+  }
 
   const addItem = () => setItems(prev => [...prev, { id: crypto.randomUUID(), description: '', quantity: 1, unit_price: 0 }])
   const removeItem = (id: string) => setItems(prev => prev.filter(i => i.id !== id))
@@ -54,7 +117,6 @@ export default function NewInvoicePage() {
     setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i))
 
   const subtotal = items.reduce((s, i) => s + (i.quantity || 0) * (i.unit_price || 0), 0)
-
   const today = new Date().toISOString().split('T')[0]
 
   return (
@@ -131,16 +193,20 @@ export default function NewInvoicePage() {
           <Card className="border-border/50">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Line Items</CardTitle>
-              <Button type="button" variant="outline" size="sm" onClick={addItem} className="gap-1.5">
-                <Plus className="w-3.5 h-3.5" />
-                Add Item
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={handleOpenImport} className="gap-1.5 text-primary border-primary/30">
+                  <Clock className="w-3.5 h-3.5" /> Import from Time Tracker
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={addItem} className="gap-1.5">
+                  <Plus className="w-3.5 h-3.5" /> Add Item
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Header row */}
               <div className="hidden sm:grid grid-cols-[1fr_80px_100px_80px_32px] gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
                 <span>Description</span>
-                <span>Qty</span>
+                <span>Qty (hrs)</span>
                 <span>Unit Price</span>
                 <span className="text-right">Total</span>
                 <span />
@@ -223,6 +289,55 @@ export default function NewInvoicePage() {
           </div>
         </div>
       </form>
+
+      {/* Import Time Tracker Dialog */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" /> Import Unbilled Time Entries
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-3 text-xs space-y-3">
+            {loadingTime ? (
+              <div className="flex items-center justify-center p-6"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+            ) : unbilledEntries.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No unbilled time entries found for this client.</p>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {unbilledEntries.map(entry => {
+                  const hrs = Math.round(((entry.duration_minutes || 0) / 60) * 10) / 10
+                  const isChecked = selectedTimeIds.includes(entry.id)
+                  return (
+                    <div
+                      key={entry.id}
+                      onClick={() => {
+                        if (isChecked) setSelectedTimeIds(selectedTimeIds.filter(id => id !== entry.id))
+                        else setSelectedTimeIds([...selectedTimeIds, entry.id])
+                      }}
+                      className={`p-2.5 rounded-lg border transition-colors cursor-pointer flex items-center justify-between ${
+                        isChecked ? 'border-primary/50 bg-primary/10' : 'border-border/40 hover:bg-muted/30'
+                      }`}
+                    >
+                      <div>
+                        <div className="font-semibold text-foreground">{entry.description || 'Time Entry'}</div>
+                        <div className="text-[11px] text-muted-foreground">{new Date(entry.started_at).toLocaleDateString()}</div>
+                      </div>
+                      <div className="font-mono font-bold text-xs text-primary">{hrs} hrs</div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportOpen(false)}>Cancel</Button>
+            <Button onClick={handleConfirmImport} disabled={unbilledEntries.length === 0}>
+              Import Selected ({selectedTimeIds.length})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

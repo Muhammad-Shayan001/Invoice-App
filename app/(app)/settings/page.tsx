@@ -9,9 +9,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Loader2, AlertCircle, CheckCircle, User, Building2, Lock } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle, User, Building2, Lock, DollarSign, Globe } from 'lucide-react'
 import { useToast } from '@/components/toast'
+import { COMMON_CURRENCIES } from '@/lib/currency'
 import type { Profile } from '@/types/database'
 
 function SubmitBtn({ label, pendingLabel }: { label: string; pendingLabel: string }) {
@@ -37,9 +39,9 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <User className="w-4 h-4 text-primary" />
-          Business Profile
+          Business & Suite Defaults
         </CardTitle>
-        <CardDescription>Used on your invoices and emails</CardDescription>
+        <CardDescription>Default hourly rate and currency shared across all suite tools</CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
@@ -57,10 +59,41 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
             <Label htmlFor="full_name">Your Name</Label>
             <Input id="full_name" name="full_name" defaultValue={profile?.full_name ?? ''} placeholder="Jane Smith" />
           </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="business_name">Business Name</Label>
             <Input id="business_name" name="business_name" defaultValue={profile?.business_name ?? ''} placeholder="Smith Design Studio" />
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="default_hourly_rate">Default Hourly Rate ($)</Label>
+              <Input
+                id="default_hourly_rate"
+                name="default_hourly_rate"
+                type="number"
+                step="5"
+                defaultValue={profile?.default_hourly_rate ?? 50}
+                placeholder="50"
+              />
+              <p className="text-[11px] text-muted-foreground">Used when logging time or invoicing</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="default_currency">Default Currency</Label>
+              <select
+                id="default_currency"
+                name="default_currency"
+                defaultValue={profile?.default_currency ?? 'USD'}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs"
+              >
+                {COMMON_CURRENCIES.map(c => (
+                  <option key={c.code} value={c.code}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="default_notes">Default Invoice Notes</Label>
             <Textarea
@@ -73,7 +106,7 @@ function ProfileForm({ profile }: { profile: Profile | null }) {
             <p className="text-xs text-muted-foreground">Added automatically to new invoices</p>
           </div>
           <div className="flex justify-end">
-            <SubmitBtn label="Save Profile" pendingLabel="Saving…" />
+            <SubmitBtn label="Save Profile Defaults" pendingLabel="Saving…" />
           </div>
         </form>
       </CardContent>

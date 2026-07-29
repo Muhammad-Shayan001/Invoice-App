@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { CurrencyWidget } from '@/components/CurrencyWidget'
 import {
   ArrowLeft, Download, Send, CheckCircle, Pencil, Trash2, Loader2,
   AlertCircle, Lock, RefreshCw, Mail, Phone, MapPin, Calendar, Hash,
@@ -291,11 +292,18 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
               </tbody>
             </table>
 
-            {/* Total */}
-            <div className="flex justify-end mt-4 pt-4 border-t border-border/50">
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground mb-1">Total Due</p>
-                <p className="text-3xl font-bold text-primary">{formatCurrency(invoice.total)}</p>
+            {/* Total & Live Currency Widget Note */}
+            <div className="mt-6 pt-4 border-t border-border/50 space-y-4">
+              <div className="flex justify-end">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground mb-1">Total Due</p>
+                  <p className="text-3xl font-bold text-primary">{formatCurrency(invoice.total)}</p>
+                </div>
+              </div>
+
+              {/* Integrated Live Currency Conversion Widget */}
+              <div className="pt-2">
+                <CurrencyWidget compact={true} defaultAmount={invoice.total} defaultFrom="USD" defaultTo="EUR" />
               </div>
             </div>
 

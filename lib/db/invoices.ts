@@ -13,8 +13,8 @@ export function computeStatus(status: string, due_date: string): 'paid' | 'unpai
 }
 
 // Compute total from items
-export function computeTotal(items: InvoiceItem[]): number {
-  return items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+export function computeTotal(items: { quantity: number; unit_price: number }[]): number {
+  return (items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0), 0)
 }
 
 // Format currency consistently everywhere

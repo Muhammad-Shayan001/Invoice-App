@@ -13,18 +13,24 @@ declare module 'lucide-react' {
   export const AlertTriangle: LucideIcon
   export const ArrowLeft: LucideIcon
   export const ArrowRight: LucideIcon
+  export const ArrowUpDown: LucideIcon
 
   // B
+  export const BarChart: LucideIcon
+  export const BarChart3: LucideIcon
   export const Building2: LucideIcon
 
   // C
+  export const Calculator: LucideIcon
   export const Calendar: LucideIcon
+  export const Check: LucideIcon
   export const CheckCircle: LucideIcon
-  export const ChevronRight: LucideIcon
   export const ChevronDown: LucideIcon
+  export const ChevronRight: LucideIcon
   export const Clock: LucideIcon
   export const Command: LucideIcon
   export const Copy: LucideIcon
+  export const CreditCard: LucideIcon
 
   // D
   export const DollarSign: LucideIcon
@@ -35,11 +41,18 @@ declare module 'lucide-react' {
   export const Eye: LucideIcon
 
   // F
+  export const FileCheck: LucideIcon
+  export const FileSpreadsheet: LucideIcon
   export const FileText: LucideIcon
   export const Filter: LucideIcon
 
+  // G
+  export const Globe: LucideIcon
+
   // H
   export const Hash: LucideIcon
+  export const HelpCircle: LucideIcon
+  export const History: LucideIcon
 
   // I
   export const Info: LucideIcon
@@ -58,24 +71,34 @@ declare module 'lucide-react' {
 
   // P
   export const Pencil: LucideIcon
+  export const Percent: LucideIcon
   export const Phone: LucideIcon
+  export const Play: LucideIcon
   export const Plus: LucideIcon
   export const Printer: LucideIcon
 
+  // Q
+  export const QrCode: LucideIcon
+
   // R
   export const Receipt: LucideIcon
+  export const ReceiptText: LucideIcon
   export const RefreshCw: LucideIcon
 
   // S
+  export const Scale: LucideIcon
   export const Search: LucideIcon
   export const Send: LucideIcon
   export const Settings: LucideIcon
+  export const Share2: LucideIcon
   export const Shield: LucideIcon
   export const ShieldCheck: LucideIcon
   export const Sparkles: LucideIcon
+  export const Square: LucideIcon
   export const Sun: LucideIcon
 
   // T
+  export const Tag: LucideIcon
   export const Trash2: LucideIcon
   export const TrendingDown: LucideIcon
   export const TrendingUp: LucideIcon
@@ -84,6 +107,9 @@ declare module 'lucide-react' {
   export const User: LucideIcon
   export const UserPlus: LucideIcon
   export const Users: LucideIcon
+
+  // W
+  export const Wrench: LucideIcon
 
   // X
   export const X: LucideIcon

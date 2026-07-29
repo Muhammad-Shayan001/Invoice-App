@@ -7,6 +7,8 @@ import { z } from 'zod'
 const settingsSchema = z.object({
   full_name: z.string().max(100).optional().or(z.literal('')),
   business_name: z.string().max(150).optional().or(z.literal('')),
+  default_hourly_rate: z.number().min(0).optional(),
+  default_currency: z.string().optional(),
   default_notes: z.string().max(1000).optional().or(z.literal('')),
 })
 
@@ -18,9 +20,14 @@ export async function updateSettingsAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const rateStr = formData.get('default_hourly_rate') as string
+  const parsedRate = rateStr ? parseFloat(rateStr) : undefined
+
   const parsed = settingsSchema.safeParse({
     full_name: formData.get('full_name') || undefined,
     business_name: formData.get('business_name') || undefined,
+    default_hourly_rate: parsedRate,
+    default_currency: (formData.get('default_currency') as string) || undefined,
     default_notes: formData.get('default_notes') || undefined,
   })
 
@@ -30,12 +37,16 @@ export async function updateSettingsAction(
     id: user.id,
     full_name: parsed.data.full_name || null,
     business_name: parsed.data.business_name || null,
+    default_hourly_rate: parsed.data.default_hourly_rate ?? 50,
+    default_currency: parsed.data.default_currency || 'USD',
     default_notes: parsed.data.default_notes || null,
   })
 
   if (error) return { error: error.message }
 
   revalidatePath('/settings')
+  revalidatePath('/dashboard')
+  revalidatePath('/time')
   return { success: true }
 }
 

@@ -13,6 +13,15 @@ import {
   LayoutDashboard,
   Users,
   FileText,
+  Clock,
+  Globe,
+  Calculator,
+  FileCheck,
+  FileSpreadsheet,
+  Percent,
+  AlertTriangle,
+  Scale,
+  QrCode,
   Settings,
   LogOut,
   Menu,
@@ -20,30 +29,50 @@ import {
   Zap,
   Search,
   Command,
+  ChevronDown,
+  Wrench,
 } from 'lucide-react'
 
-const navLinks = [
+const mainLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/clients', label: 'Clients', icon: Users },
   { href: '/invoices', label: 'Invoices', icon: FileText },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/time', label: 'Time Tracker', icon: Clock },
+  { href: '/clients', label: 'Clients', icon: Users },
+]
+
+const toolLinks = [
+  { href: '/tools/currency', label: 'Currency Converter', icon: Globe },
+  { href: '/tools/rate-calculator', label: 'Hourly Rate Calc', icon: Calculator },
+  { href: '/tools/proposals', label: 'Proposal Generator', icon: FileCheck },
+  { href: '/tools/contracts', label: 'Contract Generator', icon: FileSpreadsheet },
+  { href: '/tools/expenses', label: 'Expense Tracker', icon: Receipt },
+  { href: '/tools/tax', label: 'Tax Estimator', icon: Percent },
+  { href: '/tools/late-fee', label: 'Late Fee Calc', icon: AlertTriangle },
+  { href: '/tools/rate-compare', label: 'Rate Comparison', icon: Scale },
+  { href: '/tools/qr', label: 'QR Payment Code', icon: QrCode },
 ]
 
 function SidebarContent({ onNavigate, onOpenSearch }: { onNavigate?: () => void; onOpenSearch: () => void }) {
   const pathname = usePathname()
+  const [toolsOpen, setToolsOpen] = useState(true)
+
+  const allLinks = [...mainLinks, ...toolLinks, { href: '/settings', label: 'Settings', icon: Settings }]
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 py-5 border-b border-border/50">
+      <div className="flex items-center gap-2.5 px-4 py-4 border-b border-border/50 shrink-0">
         <div className="p-1.5 rounded-lg bg-primary/15">
           <Receipt className="w-5 h-5 text-primary" />
         </div>
-        <span className="font-bold text-lg tracking-tight">Invoicer</span>
+        <div>
+          <span className="font-bold text-base tracking-tight block leading-tight">Invoicer</span>
+          <span className="text-[10px] text-muted-foreground font-mono">Freelancer Suite</span>
+        </div>
       </div>
 
       {/* Quick Search Trigger */}
-      <div className="px-3 pt-3">
+      <div className="px-3 pt-3 shrink-0">
         <button
           onClick={() => {
             onOpenSearch()
@@ -53,7 +82,7 @@ function SidebarContent({ onNavigate, onOpenSearch }: { onNavigate?: () => void;
         >
           <div className="flex items-center gap-2">
             <Search className="w-3.5 h-3.5" />
-            <span>Search...</span>
+            <span>Search tools...</span>
           </div>
           <div className="flex items-center gap-0.5 font-mono text-[10px] bg-background/80 px-1.5 py-0.5 rounded border border-border/50">
             <Command className="w-2.5 h-2.5" /> K
@@ -62,34 +91,92 @@ function SidebarContent({ onNavigate, onOpenSearch }: { onNavigate?: () => void;
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navLinks.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onNavigate}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
-                active
-                  ? 'bg-primary/15 text-primary border-l-2 border-primary pl-[10px]'
-                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-              )}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              {label}
-            </Link>
-          )
-        })}
+      <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto custom-scrollbar">
+        {/* Main Section */}
+        <div className="space-y-0.5">
+          {mainLinks.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={onNavigate}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150',
+                  active
+                    ? 'bg-primary/15 text-primary border-l-2 border-primary pl-[10px] font-semibold'
+                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                )}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                {label}
+              </Link>
+            )
+          })}
+        </div>
+
+        {/* Tools Section */}
+        <div className="space-y-1 pt-2 border-t border-border/40">
+          <button
+            onClick={() => setToolsOpen(!toolsOpen)}
+            className="flex items-center justify-between w-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 hover:text-foreground transition-colors"
+          >
+            <div className="flex items-center gap-1.5">
+              <Wrench className="w-3 h-3 text-primary" />
+              <span>Tools & Calculators</span>
+            </div>
+            <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", !toolsOpen && "-rotate-90")} />
+          </button>
+
+          {toolsOpen && (
+            <div className="space-y-0.5 pl-1 pt-1">
+              {toolLinks.map(({ href, label, icon: Icon }) => {
+                const active = pathname === href || pathname.startsWith(href)
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={onNavigate}
+                    className={cn(
+                      'flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150',
+                      active
+                        ? 'bg-primary/15 text-primary font-semibold'
+                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Settings */}
+        <div className="pt-2 border-t border-border/40">
+          <Link
+            href="/settings"
+            onClick={onNavigate}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150',
+              pathname === '/settings'
+                ? 'bg-primary/15 text-primary border-l-2 border-primary pl-[10px] font-semibold'
+                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+            )}
+          >
+            <Settings className="w-4 h-4 shrink-0" />
+            Settings
+          </Link>
+        </div>
       </nav>
 
       {/* Logout */}
-      <div className="px-3 py-4 border-t border-border/50">
+      <div className="px-3 py-3 border-t border-border/50 shrink-0">
         <form action={logout}>
           <button
             type="submit"
-            className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-all duration-150"
+            className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-all duration-150"
           >
             <LogOut className="w-4 h-4 shrink-0" />
             Sign Out
@@ -141,7 +228,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  const currentPage = navLinks.find(l => l.href === pathname || (l.href !== '/dashboard' && pathname.startsWith(l.href)))?.label || 'Dashboard'
+  const allLinks = [...mainLinks, ...toolLinks, { href: '/settings', label: 'Settings', icon: Settings }]
+  const currentPage = allLinks.find(l => l.href === pathname || (l.href !== '/dashboard' && pathname.startsWith(l.href)))?.label || 'Freelancer Suite'
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -149,7 +237,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-60 flex-col border-r border-border/50 bg-sidebar shrink-0">
+      <aside className="hidden md:flex w-64 flex-col border-r border-border/50 bg-sidebar shrink-0">
         <SidebarContent onOpenSearch={() => setCmdOpen(true)} />
       </aside>
 
@@ -165,7 +253,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <Menu className="w-5 h-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="p-0 w-60">
+                <SheetContent side="left" className="p-0 w-64">
                   <SidebarContent onNavigate={() => setMobileOpen(false)} onOpenSearch={() => setCmdOpen(true)} />
                 </SheetContent>
               </Sheet>
@@ -185,7 +273,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="gap-2 text-xs text-muted-foreground hover:text-foreground hidden sm:flex"
             >
               <Search className="w-3.5 h-3.5" />
-              <span>Search</span>
+              <span>Search suite...</span>
               <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
                 <Command className="w-2.5 h-2.5" /> K
               </kbd>
