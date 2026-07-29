@@ -11,6 +11,8 @@ declare module 'lucide-react' {
   // A
   export const AlertCircle: LucideIcon
   export const AlertTriangle: LucideIcon
+  export const Archive: LucideIcon
+  export const ArchiveRestore: LucideIcon
   export const ArrowLeft: LucideIcon
   export const ArrowRight: LucideIcon
   export const ArrowUpDown: LucideIcon
@@ -84,6 +86,7 @@ declare module 'lucide-react' {
   export const Receipt: LucideIcon
   export const ReceiptText: LucideIcon
   export const RefreshCw: LucideIcon
+  export const Rocket: LucideIcon
 
   // S
   export const Scale: LucideIcon

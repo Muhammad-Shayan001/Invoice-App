@@ -52,6 +52,7 @@ export async function createInvoiceAction(
     if (items.length === 0) return { error: 'Add at least one line item' }
 
     const invoice_number = await generateInvoiceNumber(supabase)
+    const currency = (formData.get('currency') as string) || 'USD'
 
     const { data: invoice, error } = await supabase.from('invoices').insert({
       user_id: user.id,
@@ -60,6 +61,7 @@ export async function createInvoiceAction(
       issue_date: parsed.data.issue_date,
       due_date: parsed.data.due_date,
       notes: parsed.data.notes || null,
+      currency,
       status: 'unpaid',
     }).select('id').single()
 
@@ -197,6 +199,7 @@ export async function duplicateInvoiceAction(id: string) {
         issue_date: today,
         due_date: due,
         notes: source.notes,
+        currency: source.currency || 'USD',
         status: 'unpaid',
       })
       .select('id')

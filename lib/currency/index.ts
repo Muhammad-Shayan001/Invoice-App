@@ -6,6 +6,8 @@ export interface ConversionResult {
   convertedAmount: number
   date: string
   timestamp: string
+  isStale?: boolean
+  staleMessage?: string
 }
 
 export const COMMON_CURRENCIES = [
@@ -35,6 +37,42 @@ const FALLBACK_RATES: Record<string, number> = {
   SGD: 1.35,
 }
 
+// In-memory cache layer for currency pairs
+interface CachedRate {
+  rate: number
+  date: string
+  timestamp: string
+  fetchedAt: number // epoch ms
+}
+
+const RATE_CACHE: Record<string, CachedRate> = {}
+
+function getCacheKey(from: string, to: string): string {
+  return `${from.toUpperCase()}_${to.toUpperCase()}`
+}
+
+function formatAgo(fetchedAt: number): string {
+  const diffSec = Math.floor((Date.now() - fetchedAt) / 1000)
+  if (diffSec < 60) return 'less than a minute'
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `${diffMin} min`
+  const diffHours = Math.floor(diffMin / 60)
+  return `${diffHours} hour(s)`
+}
+
+async function fetchWithRetry(url: string, retries = 1, delayMs = 300): Promise<Response> {
+  try {
+    const res = await fetch(url, { next: { revalidate: 3600 } })
+    if (res.ok) return res
+  } catch (err) {
+    if (retries > 0) {
+      await new Promise(r => setTimeout(r, delayMs))
+      return fetchWithRetry(url, retries - 1, delayMs)
+    }
+  }
+  throw new Error('Fetch failed')
+}
+
 export async function convertCurrency(
   amount: number,
   from: string = 'USD',
@@ -44,6 +82,7 @@ export async function convertCurrency(
   const toUpper = to.toUpperCase()
   const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   const dateStr = new Date().toISOString().split('T')[0]
+  const cacheKey = getCacheKey(fromUpper, toUpper)
 
   if (fromUpper === toUpper) {
     return {
@@ -54,43 +93,76 @@ export async function convertCurrency(
       convertedAmount: amount,
       date: dateStr,
       timestamp: nowStr,
+      isStale: false,
     }
   }
 
+  // 1. Try fresh API call with 1 retry
   try {
-    const res = await fetch(`https://api.frankfurter.app/latest?amount=1&from=${fromUpper}&to=${toUpper}`, {
-      next: { revalidate: 3600 }, // cache for 1 hour
-    })
-    if (res.ok) {
-      const data = await res.json()
-      const rate = data.rates?.[toUpper]
-      if (rate && typeof rate === 'number') {
-        return {
-          amount,
-          from: fromUpper,
-          to: toUpper,
-          rate,
-          convertedAmount: Math.round(amount * rate * 100) / 100,
-          date: data.date || dateStr,
-          timestamp: nowStr,
-        }
+    const res = await fetchWithRetry(
+      `https://api.frankfurter.app/latest?amount=1&from=${fromUpper}&to=${toUpper}`,
+      1,
+      300
+    )
+
+    const data = await res.json()
+    const rate = data.rates?.[toUpper]
+    if (rate && typeof rate === 'number') {
+      const resultRate = Math.round(rate * 10000) / 10000
+      // Cache successful response
+      RATE_CACHE[cacheKey] = {
+        rate: resultRate,
+        date: data.date || dateStr,
+        timestamp: nowStr,
+        fetchedAt: Date.now(),
+      }
+
+      return {
+        amount,
+        from: fromUpper,
+        to: toUpper,
+        rate: resultRate,
+        convertedAmount: Math.round(amount * resultRate * 100) / 100,
+        date: data.date || dateStr,
+        timestamp: nowStr,
+        isStale: false,
       }
     }
   } catch {
-    // Ignore fetch error and use fallback
+    // API failed, proceed to cache / fallback
   }
 
-  // Fallback calculation
+  // 2. Fall back to cached rate if available
+  const cached = RATE_CACHE[cacheKey]
+  if (cached) {
+    const ago = formatAgo(cached.fetchedAt)
+    return {
+      amount,
+      from: fromUpper,
+      to: toUpper,
+      rate: cached.rate,
+      convertedAmount: Math.round(amount * cached.rate * 100) / 100,
+      date: cached.date,
+      timestamp: cached.timestamp,
+      isStale: true,
+      staleMessage: `Showing last known rate from ${ago} ago — live rates unavailable right now.`,
+    }
+  }
+
+  // 3. Fall back to static estimation
   const fromRate = FALLBACK_RATES[fromUpper] || 1
   const toRate = FALLBACK_RATES[toUpper] || 1
-  const rate = toRate / fromRate
+  const rate = Math.round((toRate / fromRate) * 10000) / 10000
+
   return {
     amount,
     from: fromUpper,
     to: toUpper,
-    rate: Math.round(rate * 10000) / 10000,
+    rate,
     convertedAmount: Math.round(amount * rate * 100) / 100,
     date: dateStr,
     timestamp: `${nowStr} (estimated)`,
+    isStale: true,
+    staleMessage: 'Live exchange rates unavailable right now — showing estimated rate.',
   }
 }

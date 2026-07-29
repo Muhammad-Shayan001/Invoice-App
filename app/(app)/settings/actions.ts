@@ -40,6 +40,7 @@ export async function updateSettingsAction(
     default_hourly_rate: parsed.data.default_hourly_rate ?? 50,
     default_currency: parsed.data.default_currency || 'USD',
     default_notes: parsed.data.default_notes || null,
+    onboarding_completed: true,
   })
 
   if (error) return { error: error.message }
@@ -47,6 +48,34 @@ export async function updateSettingsAction(
   revalidatePath('/settings')
   revalidatePath('/dashboard')
   revalidatePath('/time')
+  return { success: true }
+}
+
+export async function completeOnboardingAction(
+  prevState: { error?: string; success?: boolean },
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const rateStr = formData.get('default_hourly_rate') as string
+  const parsedRate = rateStr ? parseFloat(rateStr) : 50
+
+  const { error } = await supabase.from('profiles').upsert({
+    id: user.id,
+    full_name: (formData.get('full_name') as string) || null,
+    business_name: (formData.get('business_name') as string) || null,
+    default_hourly_rate: isNaN(parsedRate) ? 50 : parsedRate,
+    default_currency: (formData.get('default_currency') as string) || 'USD',
+    onboarding_completed: true,
+  })
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/settings')
+  revalidatePath('/dashboard')
+  revalidatePath('/', 'layout')
   return { success: true }
 }
 

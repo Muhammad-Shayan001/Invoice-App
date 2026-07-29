@@ -12,9 +12,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
-import { ArrowLeft, Plus, Trash2, Loader2, AlertCircle, Users, Clock, Sparkles } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Loader2, AlertCircle, Users, Clock, Sparkles, Globe, Info } from 'lucide-react'
 import { formatCurrency } from '@/lib/db/invoices'
 import { useToast } from '@/components/toast'
+import { COMMON_CURRENCIES } from '@/lib/currency'
 import type { Client, TimeEntry } from '@/types/database'
 
 interface LineItem {
@@ -46,6 +47,11 @@ export default function NewInvoicePage() {
   const [dueDate, setDueDate] = useState('')
   const [state, formAction] = useActionState(createInvoiceAction, {})
 
+  // A3: Currency resolution state
+  const [currency, setCurrency] = useState('USD')
+  const [currencySource, setCurrencySource] = useState<'override' | 'client' | 'account'>('account')
+  const [profileCurrency, setProfileCurrency] = useState('USD')
+
   // Import Time Tracker Modal State
   const [importOpen, setImportOpen] = useState(false)
   const [unbilledEntries, setUnbilledEntries] = useState<TimeEntry[]>([])
@@ -54,8 +60,30 @@ export default function NewInvoicePage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.from('clients').select('*').order('name').then(({ data }) => setClients(data || []))
+    Promise.all([
+      supabase.from('clients').select('*').order('name'),
+      supabase.from('profiles').select('default_currency').single(),
+    ]).then(([{ data: clientsData }, { data: profileData }]) => {
+      setClients(clientsData || [])
+      const acctCurrency = profileData?.default_currency || 'USD'
+      setProfileCurrency(acctCurrency)
+      setCurrency(acctCurrency)
+      setCurrencySource('account')
+    })
   }, [])
+
+  // A3: When client changes, resolve currency: client.currency → account default
+  useEffect(() => {
+    if (!clientId) return
+    const selectedClient = clients.find(c => c.id === clientId)
+    if (selectedClient?.currency) {
+      setCurrency(selectedClient.currency)
+      setCurrencySource('client')
+    } else {
+      setCurrency(profileCurrency)
+      setCurrencySource('account')
+    }
+  }, [clientId, clients, profileCurrency])
 
   // Load unbilled time entries when import dialog opens or client changes
   const loadUnbilledTime = async (cId: string) => {
@@ -133,12 +161,13 @@ export default function NewInvoicePage() {
       </div>
 
       <form action={formAction}>
-        {/* Hidden serialized items */}
+        {/* Hidden serialized items + currency */}
         <input type="hidden" name="items" value={JSON.stringify(items.map(({ description, quantity, unit_price }) => ({ description, quantity, unit_price })))} />
         <input type="hidden" name="client_id" value={clientId} />
         <input type="hidden" name="issue_date" value={issueDate} />
         <input type="hidden" name="due_date" value={dueDate} />
         <input type="hidden" name="notes" value={notes} />
+        <input type="hidden" name="currency" value={currency} />
 
         <div className="space-y-5">
           {state?.error && (
@@ -175,7 +204,7 @@ export default function NewInvoicePage() {
                 )}
               </div>
 
-              {/* Dates */}
+              {/* Dates + Currency */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="issue_date">Issue Date</Label>
@@ -184,6 +213,31 @@ export default function NewInvoicePage() {
                 <div className="space-y-1.5">
                   <Label htmlFor="due_date">Due Date <span className="text-destructive">*</span></Label>
                   <Input id="due_date" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} min={issueDate} required />
+                </div>
+              </div>
+
+              {/* A3: Currency selector with resolution hint */}
+              <div className="space-y-1.5">
+                <Label htmlFor="inv-currency" className="flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-primary" /> Invoice Currency
+                </Label>
+                <div className="flex items-center gap-2">
+                  <select
+                    id="inv-currency"
+                    value={currency}
+                    onChange={e => { setCurrency(e.target.value); setCurrencySource('override') }}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs"
+                  >
+                    {COMMON_CURRENCIES.map(c => (
+                      <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Info className="w-3 h-3" />
+                  {currencySource === 'override' && 'Invoice-level override (manually set)'}
+                  {currencySource === 'client' && `Using client's default currency (${currency})`}
+                  {currencySource === 'account' && `Using your account default (${currency})`}
                 </div>
               </div>
             </CardContent>

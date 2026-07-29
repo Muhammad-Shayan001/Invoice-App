@@ -7,6 +7,7 @@ export interface Client {
   address: string | null
   hourly_rate?: number | null
   currency?: string | null
+  archived?: boolean
   created_at: string
 }
 
@@ -39,6 +40,8 @@ export interface Profile {
   logo_url: string | null
   default_currency?: string
   default_hourly_rate?: number | null
+  default_notes?: string | null
+  onboarding_completed?: boolean
   created_at: string
 }
 
@@ -58,6 +61,7 @@ export interface TimeEntry {
 export interface RateCalculation {
   id: string
   user_id: string
+  currency?: string
   desired_yearly_income: number
   working_days_per_year: number
   billable_hours_per_day: number
@@ -98,6 +102,7 @@ export interface DashboardStats {
   totalClients: number
   unbilledHours?: number
   defaultHourlyRate?: number
+  defaultCurrency?: string
 }
 
 export interface MonthlyEarning {

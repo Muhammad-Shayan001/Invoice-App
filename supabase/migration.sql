@@ -1,14 +1,16 @@
--- The Freelancer Suite Schema Additions
+-- The Freelancer Suite Schema Additions & Addendum Fixes
 
 -- 1. Profiles updates
 alter table if exists profiles
   add column if not exists default_currency text not null default 'USD',
-  add column if not exists default_hourly_rate numeric default 50;
+  add column if not exists default_hourly_rate numeric default 50,
+  add column if not exists onboarding_completed boolean default false;
 
 -- 2. Clients updates
 alter table if exists clients
   add column if not exists hourly_rate numeric,
-  add column if not exists currency text;
+  add column if not exists currency text,
+  add column if not exists archived boolean default false;
 
 -- 3. Invoices updates
 alter table if exists invoices
@@ -43,6 +45,7 @@ create policy "Users can manage their own time entries"
 create table if not exists rate_calculations (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
+  currency text default 'USD',
   desired_yearly_income numeric not null,
   working_days_per_year integer not null,
   billable_hours_per_day numeric not null,

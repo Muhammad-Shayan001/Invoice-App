@@ -7,6 +7,8 @@ import { logout } from '@/app/auth/actions'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { CommandPalette } from '@/components/CommandPalette'
+import { OnboardingModal } from '@/components/OnboardingModal'
+import { createClient } from '@/utils/supabase/client'
 import { cn } from '@/lib/utils'
 import {
   Receipt,
@@ -31,6 +33,7 @@ import {
   Command,
   ChevronDown,
   Wrench,
+  BarChart3,
 } from 'lucide-react'
 
 const mainLinks = [
@@ -38,6 +41,7 @@ const mainLinks = [
   { href: '/invoices', label: 'Invoices', icon: FileText },
   { href: '/time', label: 'Time Tracker', icon: Clock },
   { href: '/clients', label: 'Clients', icon: Users },
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
 ]
 
 const toolLinks = [
@@ -191,6 +195,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileOpen, setMobileOpen] = useState(false)
   const [cmdOpen, setCmdOpen] = useState(false)
   const [isDark, setIsDark] = useState(true)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const pathname = usePathname()
 
   // Theme Sync
@@ -202,6 +207,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     } else {
       document.documentElement.classList.remove('dark')
     }
+  }, [])
+
+  // Onboarding check — runs once on mount
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('profiles').select('onboarding_completed').single().then(({ data }) => {
+      if (data && data.onboarding_completed === false) {
+        setShowOnboarding(true)
+      } else if (!data) {
+        // No profile row yet — brand new user
+        setShowOnboarding(true)
+      }
+    })
   }, [])
 
   const toggleTheme = () => {
@@ -233,6 +251,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
+      {/* Onboarding Modal — blocks UI for first-time users */}
+      <OnboardingModal open={showOnboarding} onComplete={() => setShowOnboarding(false)} />
+
       {/* Command Palette Modal */}
       <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
 
