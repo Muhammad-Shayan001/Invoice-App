@@ -1,3 +1,5 @@
+'use client'
+
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'

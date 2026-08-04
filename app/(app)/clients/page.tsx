@@ -1,14 +1,16 @@
 "use client"
 
 import { useEffect, useActionState, useState, useCallback } from 'react'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useFormStatus } from 'react-dom'
 import { createClient } from '@/utils/supabase/client'
+import { getClients } from '@/lib/db/clients'
 import {
   createClientAction,
   updateClientAction,
   archiveClientAction,
   unarchiveClientAction,
-  deleteClientAction,
+  deleteClientAction
 } from '@/app/(app)/clients/actions'
 import { exportToCSV } from '@/lib/utils/csv'
 import { Button } from '@/components/ui/button'
@@ -91,8 +93,6 @@ type DeleteMode = 'archive' | 'hard-delete'
 
 export default function ClientsPage() {
   const toast = useToast()
-  const [clients, setClients] = useState<ClientWithStats[]>([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
@@ -100,29 +100,18 @@ export default function ClientsPage() {
   const [removeClient, setRemoveClient] = useState<ClientWithStats | null>(null)
   const [deleteMode, setDeleteMode] = useState<DeleteMode>('archive')
   const [actioning, setActioning] = useState(false)
+  const queryClient = useQueryClient()
+  const { data: clients, isLoading, isError, error } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const supabase = createClient()
+      return getClients(supabase)
+    }
+  })
 
-  const loadClients = useCallback(async () => {
-    const supabase = createClient()
-    const { data } = await supabase
-      .from('clients')
-      .select('*, invoices(id, invoice_items(quantity, unit_price))')
-      .order('name', { ascending: true })
 
-    const mapped: ClientWithStats[] = (data || []).map((c) => {
-      const invoices = c.invoices || []
-      const total_billed = invoices.reduce((sum: number, inv: { invoice_items: { quantity: number; unit_price: number }[] }) => {
-        return sum + (inv.invoice_items || []).reduce((s: number, item: { quantity: number; unit_price: number }) => s + item.quantity * item.unit_price, 0)
-      }, 0)
-      return { ...c, invoice_count: invoices.length, total_billed, invoices: undefined }
-    })
-    setClients(mapped)
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { loadClients() }, [loadClients])
-
-  const activeClients = clients.filter(c => !c.archived)
-  const archivedClients = clients.filter(c => c.archived)
+  const activeClients = (clients || []).filter(c => !c.archived)
+  const archivedClients = (clients || []).filter(c => c.archived)
   const displayClients = (showArchived ? archivedClients : activeClients).filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     (c.email && c.email.toLowerCase().includes(search.toLowerCase()))
@@ -160,14 +149,13 @@ export default function ClientsPage() {
         : `${removeClient.name} permanently deleted.`
       )
       setRemoveClient(null)
-      loadClients()
     }
   }
 
   const handleUnarchive = async (client: ClientWithStats) => {
     const result = await unarchiveClientAction(client.id)
     if (result?.error) toast.error(result.error)
-    else { toast.success(`${client.name} restored to active clients.`); loadClients() }
+    else { toast.success(`${client.name} restored to active clients.`); }
   }
 
   return (
@@ -217,7 +205,7 @@ export default function ClientsPage() {
 
       {/* Table */}
       <Card className="border-border/50">
-        {loading ? (
+        {isLoading ? (
           <CardContent className="pt-6 space-y-3">
             {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
           </CardContent>
@@ -374,7 +362,7 @@ export default function ClientsPage() {
           </DialogHeader>
           <ClientForm
             action={createClientAction}
-            onSuccess={() => { setAddOpen(false); loadClients(); toast.success('Client added!') }}
+            onSuccess={() => { setAddOpen(false); toast.success('Client added!') }}
           />
         </DialogContent>
       </Dialog>
@@ -389,7 +377,7 @@ export default function ClientsPage() {
             <ClientForm
               action={updateClientAction.bind(null, editClient.id)}
               initialData={editClient}
-              onSuccess={() => { setEditClient(null); loadClients(); toast.success('Client updated!') }}
+              onSuccess={() => { setEditClient(null); toast.success('Client updated!') }}
             />
           )}
         </DialogContent>

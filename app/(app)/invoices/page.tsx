@@ -15,6 +15,9 @@ import { Plus, Search, Eye, Pencil, Trash2, FileText, Loader2, Filter, Download,
 import { computeStatus, computeTotal, formatCurrency, formatDate } from '@/lib/db/invoices'
 import { useToast } from '@/components/toast'
 import type { InvoiceWithDetails, Client } from '@/types/database'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { getInvoices } from '@/lib/db/invoices'
+import { getClients } from '@/lib/db/clients'
 
 function StatusBadge({ status }: { status: 'paid' | 'unpaid' | 'overdue' }) {
   const cls = { paid: 'status-paid', unpaid: 'status-unpaid', overdue: 'status-overdue' }[status]
@@ -23,35 +26,45 @@ function StatusBadge({ status }: { status: 'paid' | 'unpaid' | 'overdue' }) {
 
 export default function InvoicesPage() {
   const toast = useToast()
-  const [invoices, setInvoices] = useState<InvoiceWithDetails[]>([])
-  const [clients, setClients] = useState<Client[]>([])
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [clientFilter, setClientFilter] = useState('all')
   const [deleteInv, setDeleteInv] = useState<InvoiceWithDetails | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  const load = useCallback(async () => {
-    const supabase = createClient()
-    const [{ data: invData }, { data: clientData }] = await Promise.all([
-      supabase.from('invoices').select('*, clients(id, name, email, address, phone), invoice_items(id, description, quantity, unit_price)').order('created_at', { ascending: false }),
-      supabase.from('clients').select('*').order('name'),
-    ])
-    setInvoices((invData || []).map(inv => ({
-      ...inv,
-      status: computeStatus(inv.status, inv.due_date),
-      total: computeTotal(inv.invoice_items || []),
-    })))
-    setClients(clientData || [])
-    setLoading(false)
-  }, [])
+  // Query for invoices with filters
+  const invoiceQuery = useQuery<InvoiceWithDetails[], Error>({
+    queryKey: ['invoices', statusFilter, clientFilter],
+    queryFn: async () => {
+      const supabase = createClient()
+      const filters: { status?: string; client_id?: string } = {}
+      if (statusFilter !== 'all') {
+        filters.status = statusFilter
+      }
+      if (clientFilter !== 'all') {
+        filters.client_id = clientFilter
+      }
+      return getInvoices(supabase, filters)
+    },
+  })
 
-  useEffect(() => { load() }, [load])
+  // Query for clients (for the filter dropdown)
+  const clientQuery = useQuery<Client[], Error>({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const supabase = createClient()
+      return getClients(supabase)
+    },
+  })
 
+  // Combine loading states
+  const loading = invoiceQuery.isLoading || clientQuery.isLoading
+  const invoices = invoiceQuery.data ?? []
+  const clients = clientQuery.data ?? []
+
+  // Apply search filter (client-side on invoice number or client name)
   const filtered = invoices.filter(inv => {
-    if (statusFilter !== 'all' && inv.status !== statusFilter) return false
-    if (clientFilter !== 'all' && inv.client_id !== clientFilter) return false
     if (search) {
       const q = search.toLowerCase()
       return inv.invoice_number.toLowerCase().includes(q) || inv.clients?.name.toLowerCase().includes(q)
@@ -81,11 +94,12 @@ export default function InvoicesPage() {
     } else {
       toast.success('Invoice deleted')
       setDeleteInv(null)
-      load()
+      // Invalidate the invoices query to refetch
+      await queryClient.invalidateQueries({ queryKey: ['invoices'] })
     }
   }
 
-  // Summary Metrics
+  // Summary Metrics (based on filtered invoices)
   const totalBilled = filtered.reduce((s, i) => s + i.total, 0)
   const paidTotal = filtered.filter(i => i.status === 'paid').reduce((s, i) => s + i.total, 0)
   const unpaidTotal = filtered.filter(i => i.status === 'unpaid').reduce((s, i) => s + i.total, 0)

@@ -25,6 +25,14 @@ interface LineItem {
   unit_price: number
 }
 
+function generateId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  // Fallback to a pseudo-random ID
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+}
+
 function SubmitBtn() {
   const { pending } = useFormStatus()
   return (
@@ -39,9 +47,12 @@ export default function NewInvoicePage() {
   const toast = useToast()
   const [clients, setClients] = useState<Client[]>([])
   const [clientId, setClientId] = useState('')
-  const [items, setItems] = useState<LineItem[]>([
-    { id: crypto.randomUUID(), description: '', quantity: 1, unit_price: 0 }
-  ])
+  const [items, setItems] = useState<LineItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      return [{ id: generateId(), description: '', quantity: 1, unit_price: 0 }]
+    }
+    return []
+  })
   const [notes, setNotes] = useState('')
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0])
   const [dueDate, setDueDate] = useState('')
@@ -122,7 +133,7 @@ export default function NewInvoicePage() {
     const fallbackRate = selectedClient?.hourly_rate || 50
 
     const newItems: LineItem[] = selected.map(e => ({
-      id: crypto.randomUUID(),
+      id: generateId(),
       description: e.description ? `Time Tracked: ${e.description}` : `Time Tracked (${new Date(e.started_at).toLocaleDateString()})`,
       quantity: Math.round(((e.duration_minutes || 0) / 60) * 100) / 100,
       unit_price: fallbackRate,
@@ -139,7 +150,7 @@ export default function NewInvoicePage() {
     toast.success(`Imported ${newItems.length} time entries into invoice!`)
   }
 
-  const addItem = () => setItems(prev => [...prev, { id: crypto.randomUUID(), description: '', quantity: 1, unit_price: 0 }])
+  const addItem = () => setItems(prev => [...prev, { id: generateId(), description: '', quantity: 1, unit_price: 0 }])
   const removeItem = (id: string) => setItems(prev => prev.filter(i => i.id !== id))
   const updateItem = (id: string, field: keyof LineItem, value: string | number) =>
     setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i))

@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { z } from 'zod'
+import { requireOwnership } from '@/lib/utils/ownership'
+import { isValidCurrencyCode } from '@/lib/currency'
 
 const settingsSchema = z.object({
   full_name: z.string().max(100).optional().or(z.literal('')),
@@ -20,6 +22,9 @@ export async function updateSettingsAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  // OWNERSHIP VALIDATION (for profile)
+  await requireOwnership(supabase, user.id, user.id, 'profiles', 'id')
+
   const rateStr = formData.get('default_hourly_rate') as string
   const parsedRate = rateStr ? parseFloat(rateStr) : undefined
 
@@ -32,6 +37,12 @@ export async function updateSettingsAction(
   })
 
   if (!parsed.success) return { error: parsed.error.issues[0]?.message || 'Invalid input' }
+
+  // Validate currency if provided
+  const currency = parsed.data.default_currency
+  if (currency !== undefined && currency !== '' && !isValidCurrencyCode(currency)) {
+    return { error: 'Invalid currency code' }
+  }
 
   const { error } = await supabase.from('profiles').upsert({
     id: user.id,
@@ -59,15 +70,24 @@ export async function completeOnboardingAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  // OWNERSHIP VALIDATION (for profile)
+  await requireOwnership(supabase, user.id, user.id, 'profiles', 'id')
+
   const rateStr = formData.get('default_hourly_rate') as string
   const parsedRate = rateStr ? parseFloat(rateStr) : 50
+
+  // Validate currency if provided
+  const currencyForm = (formData.get('default_currency') as string) || ''
+  if (currencyForm !== '' && !isValidCurrencyCode(currencyForm)) {
+    return { error: 'Invalid currency code' }
+  }
 
   const { error } = await supabase.from('profiles').upsert({
     id: user.id,
     full_name: (formData.get('full_name') as string) || null,
     business_name: (formData.get('business_name') as string) || null,
     default_hourly_rate: isNaN(parsedRate) ? 50 : parsedRate,
-    default_currency: (formData.get('default_currency') as string) || 'USD',
+    default_currency: currencyForm || 'USD',
     onboarding_completed: true,
   })
 
@@ -84,6 +104,11 @@ export async function changePasswordAction(
   formData: FormData
 ): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  // OWNERSHIP VALIDATION (for user)
+  await requireOwnership(supabase, user.id, user.id, 'profiles', 'id') // Using profiles table as reference for user ownership
 
   const newPassword = formData.get('new_password') as string
   const confirmPassword = formData.get('confirm_password') as string

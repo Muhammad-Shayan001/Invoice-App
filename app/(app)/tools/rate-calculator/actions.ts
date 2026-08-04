@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { saveDefaultRate } from '@/lib/db/profile'
+import { requireOwnership } from '@/lib/utils/ownership'
 
 export async function saveDefaultRateAction(
   rate: number,
@@ -16,6 +17,12 @@ export async function saveDefaultRateAction(
 ) {
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    // OWNERSHIP VALIDATION
+    await requireOwnership(supabase, user.id, user.id, 'profiles', 'id')
+
     await saveDefaultRate(supabase, rate, calculationDetails)
 
     revalidatePath('/settings')

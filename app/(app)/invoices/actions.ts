@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { z } from 'zod'
 import { generateInvoiceNumber } from '@/lib/db/invoices'
+import { requireOwnership } from '@/lib/utils/ownership'
+import { isValidCurrencyCode } from '@/lib/currency'
 
 const itemSchema = z.object({
   description: z.string().min(1, 'Description required'),
@@ -53,6 +55,9 @@ export async function createInvoiceAction(
 
     const invoice_number = await generateInvoiceNumber(supabase)
     const currency = (formData.get('currency') as string) || 'USD'
+    if (!isValidCurrencyCode(currency)) {
+      return { error: 'Invalid currency code' }
+    }
 
     const { data: invoice, error } = await supabase.from('invoices').insert({
       user_id: user.id,
@@ -98,6 +103,9 @@ export async function updateInvoiceAction(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Not authenticated' }
 
+    // OWNERSHIP VALIDATION
+    await requireOwnership(supabase, user.id, id, 'invoices', 'user_id')
+
     const { data: existing } = await supabase.from('invoices').select('status').eq('id', id).single()
     if (existing?.status === 'paid') return { error: 'Cannot edit a paid invoice. Reopen it first.' }
 
@@ -127,7 +135,7 @@ export async function updateInvoiceAction(
       issue_date: parsed.data.issue_date,
       due_date: parsed.data.due_date,
       notes: parsed.data.notes || null,
-    }).eq('id', id).eq('user_id', user.id)
+    }).eq('id', id)
 
     if (error) return { error: error.message }
 
@@ -158,7 +166,10 @@ export async function deleteInvoiceAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Not authenticated' }
 
-    const { error } = await supabase.from('invoices').delete().eq('id', id).eq('user_id', user.id)
+    // OWNERSHIP VALIDATION
+    await requireOwnership(supabase, user.id, id, 'invoices', 'user_id')
+
+    const { error } = await supabase.from('invoices').delete().eq('id', id)
     if (error) return { error: error.message }
 
     revalidatePath('/invoices')
@@ -177,11 +188,13 @@ export async function duplicateInvoiceAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Not authenticated' }
 
+    // OWNERSHIP VALIDATION
+    await requireOwnership(supabase, user.id, id, 'invoices', 'user_id')
+
     const { data: source, error: fetchErr } = await supabase
       .from('invoices')
       .select('*, invoice_items(description, quantity, unit_price)')
       .eq('id', id)
-      .eq('user_id', user.id)
       .single()
 
     if (fetchErr || !source) return { error: 'Original invoice not found' }
@@ -239,7 +252,10 @@ export async function markInvoicePaidAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Not authenticated' }
 
-    const { error } = await supabase.from('invoices').update({ status: 'paid' }).eq('id', id).eq('user_id', user.id)
+    // OWNERSHIP VALIDATION
+    await requireOwnership(supabase, user.id, id, 'invoices', 'user_id')
+
+    const { error } = await supabase.from('invoices').update({ status: 'paid' }).eq('id', id)
     if (error) return { error: error.message }
 
     revalidatePath(`/invoices/${id}`)
@@ -257,7 +273,10 @@ export async function markInvoiceUnpaidAction(id: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Not authenticated' }
 
-    const { error } = await supabase.from('invoices').update({ status: 'unpaid' }).eq('id', id).eq('user_id', user.id)
+    // OWNERSHIP VALIDATION
+    await requireOwnership(supabase, user.id, id, 'invoices', 'user_id')
+
+    const { error } = await supabase.from('invoices').update({ status: 'unpaid' }).eq('id', id)
     if (error) return { error: error.message }
 
     revalidatePath(`/invoices/${id}`)

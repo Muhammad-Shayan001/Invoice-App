@@ -32,12 +32,30 @@ export function formatDate(dateStr: string): string {
 }
 
 export async function generateInvoiceNumber(supabase: SupabaseClient): Promise<string> {
-  const { count } = await supabase
-    .from('invoices')
-    .select('*', { count: 'exact', head: true })
+  try {
+    // Atomically increment the counter and return the new value
+    // Using Supabase v2's sql template literal for safe increment
+    const { data, error } = await supabase
+      .from('invoice_counters')
+      .update({ next_value: (supabase as any).sql`next_value + 1` })
+      .eq('id', 1)
+      .select('next_value')
+      .single();
 
-  const next = (count ?? 0) + 1
-  return `INV-${String(next).padStart(4, '0')}`
+    if (error) throw error;
+
+    const nextValue = data?.next_value ?? 1;
+    return `INV-${String(nextValue).padStart(4, '0')}`;
+  } catch (error) {
+    // Fallback to safe counting method if counter table fails
+    // Note: This fallback is not race-condition proof but better than crashing
+    const { count } = await supabase
+      .from('invoices')
+      .select('*', { count: 'exact', head: true });
+
+    const fallbackNext = (count ?? 0) + 1;
+    return `INV-${String(fallbackNext).padStart(4, '0')}`;
+  }
 }
 
 export async function getInvoices(

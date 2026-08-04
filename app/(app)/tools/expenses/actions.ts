@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { createExpense, deleteExpense } from '@/lib/db/expenses'
+import { requireOwnership } from '@/lib/utils/ownership'
 
 export async function createExpenseAction(formData: FormData) {
   try {
@@ -29,6 +30,12 @@ export async function createExpenseAction(formData: FormData) {
 export async function deleteExpenseAction(id: string) {
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    // OWNERSHIP VALIDATION
+    await requireOwnership(supabase, user.id, id, 'expenses', 'user_id')
+
     await deleteExpense(supabase, id)
     revalidatePath('/tools/expenses')
     return { success: true }

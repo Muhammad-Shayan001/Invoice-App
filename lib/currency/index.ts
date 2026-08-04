@@ -10,6 +10,20 @@ export interface ConversionResult {
   staleMessage?: string
 }
 
+// Validation function for currency codes
+export function isValidCurrencyCode(code: string): boolean {
+  return COMMON_CURRENCIES.some(currency =>
+    currency.code.toUpperCase() === code.toUpperCase()
+  );
+}
+
+// Function to get a default currency (e.g., from user profile or fallback)
+export function getDefaultCurrency(): string {
+  // In a real app, you might fetch the user's default currency from their profile
+  // For now, we'll default to USD
+  return 'USD';
+}
+
 export const COMMON_CURRENCIES = [
   { code: 'USD', name: 'US Dollar ($)' },
   { code: 'EUR', name: 'Euro (€)' },
@@ -80,6 +94,15 @@ export async function convertCurrency(
 ): Promise<ConversionResult> {
   const fromUpper = from.toUpperCase()
   const toUpper = to.toUpperCase()
+
+  // Validate input currencies
+  if (!isValidCurrencyCode(fromUpper)) {
+    throw new Error(`Invalid source currency: ${from}`)
+  }
+  if (!isValidCurrencyCode(toUpper)) {
+    throw new Error(`Invalid target currency: ${to}`)
+  }
+
   const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   const dateStr = new Date().toISOString().split('T')[0]
   const cacheKey = getCacheKey(fromUpper, toUpper)

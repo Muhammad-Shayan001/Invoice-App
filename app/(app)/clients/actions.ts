@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { z } from 'zod'
+import { requireOwnership } from '@/lib/utils/ownership'
 
 const clientSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
@@ -51,6 +52,9 @@ export async function updateClientAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  // OWNERSHIP VALIDATION
+  await requireOwnership(supabase, user.id, id, 'clients', 'user_id')
+
   const parsed = clientSchema.safeParse({
     name: formData.get('name'),
     email: formData.get('email') || undefined,
@@ -65,7 +69,7 @@ export async function updateClientAction(
     email: parsed.data.email || null,
     phone: parsed.data.phone || null,
     address: parsed.data.address || null,
-  }).eq('id', id).eq('user_id', user.id)
+  }).eq('id', id)
 
   if (error) return { error: error.message }
 
@@ -84,11 +88,13 @@ export async function archiveClientAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  // OWNERSHIP VALIDATION
+  await requireOwnership(supabase, user.id, id, 'clients', 'user_id')
+
   const { error } = await supabase
     .from('clients')
     .update({ archived: true })
     .eq('id', id)
-    .eq('user_id', user.id)
 
   if (error) return { error: error.message }
 
@@ -107,11 +113,13 @@ export async function unarchiveClientAction(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  // OWNERSHIP VALIDATION
+  await requireOwnership(supabase, user.id, id, 'clients', 'user_id')
+
   const { error } = await supabase
     .from('clients')
     .update({ archived: false })
     .eq('id', id)
-    .eq('user_id', user.id)
 
   if (error) return { error: error.message }
 
@@ -128,6 +136,9 @@ export async function deleteClientAction(id: string): Promise<{ error?: string; 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  // OWNERSHIP VALIDATION
+  await requireOwnership(supabase, user.id, id, 'clients', 'user_id')
+
   // Delete time entries first (no cascade in schema assumed)
   await supabase.from('time_entries').delete().eq('client_id', id)
 
@@ -139,7 +150,7 @@ export async function deleteClientAction(id: string): Promise<{ error?: string; 
     await supabase.from('invoices').delete().in('id', ids)
   }
 
-  const { error } = await supabase.from('clients').delete().eq('id', id).eq('user_id', user.id)
+  const { error } = await supabase.from('clients').delete().eq('id', id)
   if (error) return { error: error.message }
 
   revalidatePath('/clients')

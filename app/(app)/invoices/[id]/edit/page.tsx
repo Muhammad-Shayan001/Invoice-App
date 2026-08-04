@@ -24,6 +24,14 @@ interface LineItem {
   unit_price: number
 }
 
+function generateId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  // Fallback to a pseudo-random ID
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+}
+
 function SubmitBtn() {
   const { pending } = useFormStatus()
   return (
@@ -88,7 +96,7 @@ export default function EditInvoicePage({ params }: { params: Promise<{ id: stri
     }
   })
 
-  const addItem = () => setItems(prev => [...prev, { id: crypto.randomUUID(), description: '', quantity: 1, unit_price: 0 }])
+  const addItem = () => setItems(prev => [...prev, { id: generateId(), description: '', quantity: 1, unit_price: 0 }])
   const removeItem = (itemRemoveId: string) => setItems(prev => prev.filter(i => i.id !== itemRemoveId))
   const updateItem = (itemId: string, field: keyof LineItem, value: string | number) =>
     setItems(prev => prev.map(i => i.id === itemId ? { ...i, [field]: value } : i))

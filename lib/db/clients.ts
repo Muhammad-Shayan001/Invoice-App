@@ -2,24 +2,40 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Client, ClientWithStats } from '@/types/database'
 
 export async function getClients(supabase: SupabaseClient): Promise<ClientWithStats[]> {
-  const { data, error } = await supabase
+  // Fetch all clients
+  const { data: clients, error: clientsError } = await supabase
     .from('clients')
-    .select(`
-      *,
-      invoices(
-        id,
-        invoice_items(quantity, unit_price)
-      )
-    `)
+    .select('*')
     .order('name', { ascending: true })
 
-  if (error) throw error
+  if (clientsError) throw clientsError
+  if (!clients || clients.length === 0) return []
 
-  return (data || []).map((client: Client & { invoices: { id: string; invoice_items: { quantity: number; unit_price: number }[] }[] }) => {
-    const invoices = client.invoices || []
-    const total_billed = invoices.reduce((sum, inv) => {
+  // Fetch all invoices for these clients
+  const clientIds = clients.map(c => c.id)
+  const { data: invoices, error: invoicesError } = await supabase
+    .from('invoices')
+    .select('*, invoice_items(quantity, unit_price)')
+    .in('client_id', clientIds)
+
+  if (invoicesError) throw invoicesError
+
+  // Group invoices by clientId
+  const invoicesByClientId: Record<string, typeof invoices> = {}
+  for (const invoice of invoices || []) {
+    if (!invoicesByClientId[invoice.client_id]) {
+      invoicesByClientId[invoice.client_id] = []
+    }
+    invoicesByClientId[invoice.client_id].push(invoice)
+  }
+
+  // Process each client
+  return clients.map(client => {
+    const clientInvoices = invoicesByClientId[client.id] || []
+    const invoiceCount = clientInvoices.length
+    const totalBilled = clientInvoices.reduce((sum, inv) => {
       const invTotal = (inv.invoice_items || []).reduce(
-        (s, item) => s + item.quantity * item.unit_price,
+        (s: number, item: { quantity: number; unit_price: number }) => s + (item.quantity * item.unit_price),
         0
       )
       return sum + invTotal
@@ -33,8 +49,8 @@ export async function getClients(supabase: SupabaseClient): Promise<ClientWithSt
       phone: client.phone,
       address: client.address,
       created_at: client.created_at,
-      invoice_count: invoices.length,
-      total_billed,
+      invoice_count: invoiceCount,
+      total_billed: totalBilled,
     }
   })
 }

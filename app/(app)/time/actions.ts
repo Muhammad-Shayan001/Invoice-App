@@ -10,12 +10,20 @@ import {
   deleteTimeEntry,
 } from '@/lib/db/time'
 import { convertTimeToInvoice } from '@/lib/time-to-invoice'
+import { requireOwnership } from '@/lib/utils/ownership'
 
 export async function startTimerAction(formData: FormData) {
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
     const client_id = (formData.get('client_id') as string) || undefined
     const description = (formData.get('description') as string) || undefined
+
+    // Validate client ownership if client_id is provided
+    if (client_id) {
+      await requireOwnership(supabase, user.id, client_id, 'clients')
+    }
 
     await startTimer(supabase, { client_id, description })
     revalidatePath('/time')
@@ -28,6 +36,12 @@ export async function startTimerAction(formData: FormData) {
 export async function stopTimerAction(id: string) {
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    // OWNERSHIP VALIDATION
+    await requireOwnership(supabase, user.id, id, 'time_entries', 'user_id')
+
     await stopTimer(supabase, id)
     revalidatePath('/time')
     revalidatePath('/dashboard')
@@ -40,6 +54,8 @@ export async function stopTimerAction(id: string) {
 export async function createManualTimeEntryAction(formData: FormData) {
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
     const client_id = (formData.get('client_id') as string) || undefined
     const description = (formData.get('description') as string) || undefined
     const started_at = (formData.get('started_at') as string) || new Date().toISOString()
@@ -49,6 +65,11 @@ export async function createManualTimeEntryAction(formData: FormData) {
     const totalMinutes = Math.round(hours * 60 + minutes)
     if (totalMinutes <= 0) {
       return { error: 'Please enter a duration greater than 0' }
+    }
+
+    // Validate client ownership if client_id is provided
+    if (client_id) {
+      await requireOwnership(supabase, user.id, client_id, 'clients')
     }
 
     await createManualTimeEntry(supabase, {
@@ -69,6 +90,12 @@ export async function createManualTimeEntryAction(formData: FormData) {
 export async function deleteTimeEntryAction(id: string) {
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    // OWNERSHIP VALIDATION
+    await requireOwnership(supabase, user.id, id, 'time_entries', 'user_id')
+
     await deleteTimeEntry(supabase, id)
     revalidatePath('/time')
     revalidatePath('/dashboard')
@@ -82,6 +109,18 @@ export async function convertTimeEntriesToInvoiceAction(clientId: string, timeEn
   let invoiceId: string | null = null
   try {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    // OWNERSHIP VALIDATION
+    // Validate client ownership
+    await requireOwnership(supabase, user.id, clientId, 'clients')
+
+    // Validate ownership of all time entries
+    for (const timeEntryId of timeEntryIds) {
+      await requireOwnership(supabase, user.id, timeEntryId, 'time_entries')
+    }
+
     const res = await convertTimeToInvoice(supabase, {
       clientId,
       timeEntryIds,

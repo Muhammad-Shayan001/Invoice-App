@@ -1,0 +1,53 @@
+
+> invoice-app@0.1.0 build
+> set NODE_OPTIONS=--max-old-space-size=4096&& next build --webpack
+
+▲ Next.js 16.2.12 (webpack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 16.0s
+  Running TypeScript ...
+  Finished TypeScript in 15.2s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/22) ...
+  Generating static pages using 7 workers (5/22) 
+  Generating static pages using 7 workers (10/22) 
+  Generating static pages using 7 workers (16/22) 
+✓ Generating static pages using 7 workers (22/22) in 4.2s
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/invoices/[id]/pdf
+├ ƒ /api/invoices/[id]/send
+├ ○ /clients
+├ ○ /dashboard
+├ ○ /invoices
+├ ƒ /invoices/[id]
+├ ƒ /invoices/[id]/edit
+├ ○ /invoices/new
+├ ○ /login
+├ ƒ /pay/[id]
+├ ○ /reports
+├ ○ /settings
+├ ○ /signup
+├ ○ /time
+├ ○ /tools/contracts
+├ ○ /tools/currency
+├ ○ /tools/expenses
+├ ○ /tools/late-fee
+├ ○ /tools/proposals
+├ ○ /tools/qr
+├ ○ /tools/rate-calculator
+├ ○ /tools/rate-compare
+└ ○ /tools/tax
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

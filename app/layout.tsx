@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { cn } from '@/lib/utils'
 import { ToastProvider } from '@/components/toast'
+import QueryClientProviderWrapper from './query-client-provider'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
@@ -23,7 +24,9 @@ export default function RootLayout({
         className={cn('min-h-screen bg-background font-sans antialiased', inter.variable)}
       >
         <ToastProvider>
-          {children}
+          <QueryClientProviderWrapper>
+            {children}
+          </QueryClientProviderWrapper>
         </ToastProvider>
       </body>
     </html>
